@@ -1,0 +1,10 @@
+../Src/pwm_driver_hal.c:20:6:pwm_Config	16	static
+../Src/pwm_driver_hal.c:118:6:timer_enable_clock_peripheral	16	static,ignoring_inline_asm
+../Src/pwm_driver_hal.c:162:6:startPwmSignal	16	static
+../Src/pwm_driver_hal.c:173:6:stopPwmSignal	16	static
+../Src/pwm_driver_hal.c:182:6:enableOutput	16	static
+../Src/pwm_driver_hal.c:220:6:selectPolarity	16	static
+../Src/pwm_driver_hal.c:280:6:setFrequency	16	static
+../Src/pwm_driver_hal.c:297:6:updateFrequency	16	static
+../Src/pwm_driver_hal.c:310:6:setDutyCycle	16	static
+../Src/pwm_driver_hal.c:348:6:updateDutyCycle	16	static

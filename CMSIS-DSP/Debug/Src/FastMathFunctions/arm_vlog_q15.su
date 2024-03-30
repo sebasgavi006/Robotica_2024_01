@@ -1,0 +1,2 @@
+../Src/FastMathFunctions/arm_vlog_q15.c:58:17:arm_scalar_log_q15	32	static
+../Src/FastMathFunctions/arm_vlog_q15.c:223:6:arm_vlog_q15	32	static
