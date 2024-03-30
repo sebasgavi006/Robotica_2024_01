@@ -1,0 +1,40 @@
+2024-03-30 15:48:59,231 [INFO] Activator:177 - 
+
+
+2024-03-30 15:48:59,232 [INFO] Activator:178 - !SESSION log4j initialized
+2024-03-30 15:48:59,401 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SWT Webkit: Warning, You are using an old version of webkitgtk. (pre 2.4) BrowserFunction functionality will not be available
+2024-03-30 15:48:59,403 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SWT WebKit: error initializing DBus server, dBusServer == 0
+2024-03-30 15:49:25,116 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2024-03-30 15:49:25,117 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2024-03-30 15:49:25,117 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2024-03-30 15:54:23,744 [INFO] Activator:177 - 
+
+
+2024-03-30 15:54:23,745 [INFO] Activator:178 - !SESSION log4j initialized
+2024-03-30 15:54:25,356 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SWT Webkit: Warning, You are using an old version of webkitgtk. (pre 2.4) BrowserFunction functionality will not be available
+2024-03-30 15:54:25,357 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SWT WebKit: error initializing DBus server, dBusServer == 0
+2024-03-30 15:54:55,340 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2024-03-30 15:54:55,345 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2024-03-30 15:54:55,346 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2024-03-30 15:59:04,488 [INFO] Activator:177 - 
+
+
+2024-03-30 15:59:04,490 [INFO] Activator:178 - !SESSION log4j initialized
+2024-03-30 15:59:33,581 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2024-03-30 15:59:33,587 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2024-03-30 15:59:33,589 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2024-03-30 16:10:53,500 [INFO] Activator:177 - 
+
+
+2024-03-30 16:10:53,502 [INFO] Activator:178 - !SESSION log4j initialized
+2024-03-30 16:11:33,483 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2024-03-30 16:11:33,487 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2024-03-30 16:11:33,488 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2024-03-30 16:39:14,652 [INFO] Activator:177 - 
+
+
+2024-03-30 16:39:14,654 [INFO] Activator:178 - !SESSION log4j initialized
+2024-03-30 16:40:02,163 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2024-03-30 16:40:02,164 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2024-03-30 16:40:02,165 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2024-03-30 16:42:48,314 [ERROR] ConfigurationRetriever:139 - IOException on connection: Read timed out

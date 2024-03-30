@@ -1411,5 +1411,3 @@ void adc_ConfigAnalogPin(uint8_t adcChannel) {
 	}
 	gpio_Config(&handlerADCPin);
 }
-
-

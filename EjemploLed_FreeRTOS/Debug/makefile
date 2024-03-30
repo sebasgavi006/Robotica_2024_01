@@ -67,8 +67,8 @@ all: main-build
 main-build: EjemploLed_FreeRTOS.elf secondary-outputs
 
 # Tool invocations
-EjemploLed_FreeRTOS.elf EjemploLed_FreeRTOS.map: $(OBJS) $(USER_OBJS) /home/sebas/Repositories/GitHub/sgaviriav_Robotica/EjemploLed_FreeRTOS/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "EjemploLed_FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/sebas/Repositories/GitHub/sgaviriav_Robotica/EjemploLed_FreeRTOS/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EjemploLed_FreeRTOS.map" -Wl,--gc-sections -static -L/home/sebas/Repositories/GitHub/sgaviriav_Robotica/PeripheralsDrivers/Debug --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+EjemploLed_FreeRTOS.elf EjemploLed_FreeRTOS.map: $(OBJS) $(USER_OBJS) /home/aristizabal/Documents/Repositories/Robotica_2024_01/EjemploLed_FreeRTOS/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "EjemploLed_FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/aristizabal/Documents/Repositories/Robotica_2024_01/EjemploLed_FreeRTOS/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EjemploLed_FreeRTOS.map" -Wl,--gc-sections -static -L/home/sebas/Repositories/GitHub/sgaviriav_Robotica/PeripheralsDrivers/Debug --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
