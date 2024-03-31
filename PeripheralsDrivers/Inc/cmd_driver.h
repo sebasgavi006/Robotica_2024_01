@@ -13,14 +13,26 @@
 #include "usart_driver_hal.h"
 
 
-uint8_t bufferReception(uint8_t rxData, char *ptrBufferReception, uint8_t counterReception);
+typedef struct
+{
+	char			cmd[128];
+	unsigned int 	firstParameter;
+	unsigned int	secondParameter;
+	char			lastString[32];
+} cmd_Handler_t;
+
+
+uint8_t bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, char *ptrBufferReception, uint8_t counterReception, cmd_Handler_t *ptrcmdHandler);
+
+
+void parseCommands(USART_Handler_t *ptrHandlerCommSerial, char  *ptrbufferReception, cmd_Handler_t *ptrcmdHandler);
 //void parseCommands(char *prtBufferReception, char *cmd, unsigned int firstParameter, unsigned int secondParameter, char *userMsg);
-void helpMenu(USART_Handler_t handlerCommSerial);
+
+
+void helpMenu(USART_Handler_t *ptrHandlerCommSerial);
 
 void modSpeed(uint8_t percSpeed);
 void modDir(uint8_t dir);
-
-void parseCommands(char  *ptrbufferReception);
 
 
 #endif /* CMD_DRIVER_H_ */

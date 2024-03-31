@@ -28,6 +28,7 @@
 #include "exti_driver_hal.h"
 #include "systick_driver_hal.h"
 #include "pll_driver_hal.h"
+#include "cmd_driver.h"
 
 
 
@@ -77,7 +78,7 @@ uint16_t counter_L = 0;
 GPIO_Handler_t handlerPinTX		= {0};
 GPIO_Handler_t handlerPinRX		= {0};
 USART_Handler_t usart1Comm		= {0};
-char bufferMsg[64] = {0};
+
 
 
 //char bufferMsg[128] = {0};
@@ -91,6 +92,7 @@ char cmd[128] = {0};
 unsigned int firstParameter = 0;
 unsigned int secondParameter = 0;
 char lastString[32] = {0};
+cmd_Handler_t commands = {0};
 
 // Variables globales para el funcionamiento del robot
 uint8_t defaultSpeed = 0;
@@ -100,6 +102,13 @@ uint8_t counterPercDuty = 0;
 uint8_t flagEncR = 0;
 uint8_t flagEncL = 0;
 uint8_t flagStop = 0;
+
+
+char bufferMsg[128] = {0};
+char bufferReceiver[64] = {0};
+uint8_t rxData = 0;
+uint8_t counterReception = 0;
+uint8_t stringComplete = 0;
 
 // Funciones privadas
 void initSystem(void);
@@ -135,36 +144,7 @@ int main(void){
 	/* Loop forever */
 	while(1){
 
-
-		// Se revisa cual fue el dato recibido por la comunicacion serial
-		if(rxData != '\0'){
-			bufferReceiver[counterReception] = rxData;
-			counterReception++;
-
-			// Se verifica si el último dato es el caracter de finalizacion de un string
-			if (rxData == '@'){
-				// Se modifica el estado de una variable de control
-				stringComplete = 1;
-
-				// Configuramos las variables para guardar el string y esperar uno nuevo
-				bufferReceiver[counterReception] = '\0';
-				counterReception = 0;
-			}
-
-			// Limpiamos la variable que almacena los datos recibidos por el com. serial
-			rxData = '\0';
-		}
-		else{
-			// Aun no se han recibido caractéres a traves de la comunicacion serial
-			stringComplete = 0;
-		}
-
-
-		if(stringComplete){
-			parseCommands(bufferReceiver);
-			stringComplete = 0;
-		}
-
+		bufferReception(&usart1Comm, rxData, bufferReceiver, counterReception);
 	}
 
 
@@ -332,6 +312,9 @@ void initSystem(void){
 	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
 	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
 	usart_Config(&usart1Comm);
+
+	// ====================================================CMD=======================================
+	commands.
 
 
 }
