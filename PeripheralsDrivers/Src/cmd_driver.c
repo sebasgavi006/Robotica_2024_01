@@ -19,7 +19,7 @@
  * Esta funcion organiza los datos recibido a traves del puerto serial en un string
  * y devuelve una variable de estado cuando se completa el string
  */
-uint8_t bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, char *ptrBufferReception, uint8_t counterReception, cmd_Handler_t *ptrcmdHandler){
+void bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, char *ptrBufferReception, uint8_t counterReception, cmd_Handler_t *ptrcmdHandler){
 
 	uint8_t stringComplete = 0;
 
@@ -54,7 +54,6 @@ uint8_t bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, ch
 		stringComplete = 0;
 	}
 
-	return stringComplete;
 }
 
 

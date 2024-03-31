@@ -1,4 +1,4 @@
-/home/aristizabal/STM32CubeIDE/Robotics/RTOS_workspace/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
+/home/sebas/STM32Cube/Robotics/workspace_fundamentos_robotica/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
 ../Src/exti_driver_hal.c:22:6:exti_Config	16	static,ignoring_inline_asm
 ../Src/exti_driver_hal.c:50:13:exti_enable_clock_peripheral	4	static
 ../Src/exti_driver_hal.c:60:13:exti_assign_channel	16	static,ignoring_inline_asm

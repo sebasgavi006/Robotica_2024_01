@@ -15,14 +15,14 @@
 
 typedef struct
 {
-	char			cmd[128];
+	char			*cmd;
 	unsigned int 	firstParameter;
 	unsigned int	secondParameter;
-	char			lastString[32];
+	char			*lastString;
 } cmd_Handler_t;
 
 
-uint8_t bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, char *ptrBufferReception, uint8_t counterReception, cmd_Handler_t *ptrcmdHandler);
+void bufferReception(USART_Handler_t *ptrHandlerCommSerial,uint8_t rxData, char *ptrBufferReception, uint8_t counterReception, cmd_Handler_t *ptrcmdHandler);
 
 
 void parseCommands(USART_Handler_t *ptrHandlerCommSerial, char  *ptrbufferReception, cmd_Handler_t *ptrcmdHandler);

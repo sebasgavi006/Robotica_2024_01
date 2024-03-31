@@ -144,7 +144,7 @@ int main(void){
 	/* Loop forever */
 	while(1){
 
-		bufferReception(&usart1Comm, rxData, bufferReceiver, counterReception);
+		bufferReception(&usart1Comm, rxData, bufferReceiver, counterReception, &commands);
 	}
 
 
@@ -314,9 +314,10 @@ void initSystem(void){
 	usart_Config(&usart1Comm);
 
 	// ====================================================CMD=======================================
-	commands.
-
-
+	commands.cmd				= cmd;
+	commands.firstParameter		= firstParameter;
+	commands.secondParameter 	= secondParameter;
+	commands.lastString			= lastString;
 }
 
 

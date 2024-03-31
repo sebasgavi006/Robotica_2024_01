@@ -1,0 +1,10 @@
+../Src/main1.c:122:5:main	16	static
+../Src/main1.c:156:6:initSystem	8	static
+../Src/main1.c:327:6:forwardMove	16	static
+../Src/main1.c:360:6:backwardMove	16	static
+../Src/main1.c:395:6:turnOff	8	static
+../Src/main1.c:410:6:turnOn	8	static
+../Src/main1.c:424:6:Timer2_Callback	8	static
+../Src/main1.c:436:6:usart1_RxCallback	8	static
+../Src/main1.c:443:6:callback_ExtInt1	4	static
+../Src/main1.c:450:6:callback_ExtInt3	4	static
