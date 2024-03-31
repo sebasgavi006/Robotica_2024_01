@@ -1,9 +1,0 @@
-/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
-/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1724:22:__NVIC_DisableIRQ	16	static,ignoring_inline_asm
-../Src/systick_driver_hal.c:23:6:systick_Config	16	static,ignoring_inline_asm
-../Src/systick_driver_hal.c:73:6:systick_SetState	16	static,ignoring_inline_asm
-../Src/systick_driver_hal.c:97:10:systick_GetTicks	4	static
-../Src/systick_driver_hal.c:105:13:systick_config_interrupt	16	static
-../Src/systick_driver_hal.c:132:6:systick_Delay_ms	48	static
-../Src/systick_driver_hal.c:153:28:systick_Callback	4	static,ignoring_inline_asm
-../Src/systick_driver_hal.c:160:6:SysTick_Handler	8	static

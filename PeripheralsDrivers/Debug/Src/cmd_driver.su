@@ -1,4 +1,0 @@
-../Src/cmd_driver.c:19:9:bufferReception	24	static
-../Src/cmd_driver.c:74:6:helpMenu	8	static
-../Src/cmd_driver.c:84:6:modSpeed	16	static
-../Src/cmd_driver.c:89:6:modDir	16	static

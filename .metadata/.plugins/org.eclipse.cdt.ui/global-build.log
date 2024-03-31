@@ -1,21 +1,54 @@
-09:19:37 **** Incremental Build of configuration Debug for project Wheels_Test ****
+09:48:23 **** Incremental Build of configuration Debug for project PeripheralsDrivers ****
 make clean all 
-rm -rf ./Startup/startup_stm32f411retx.d ./Startup/startup_stm32f411retx.o
-rm -rf ./Src/main1.d ./Src/main1.o ./Src/main1.su ./Src/syscalls.d ./Src/syscalls.o ./Src/syscalls.su ./Src/sysmem.d ./Src/sysmem.o ./Src/sysmem.su
-rm -rf Wheels_Test.elf Wheels_Test.list Wheels_Test.map default.size.stdout
+rm -rf ./Src/adc_driver_hal.d ./Src/adc_driver_hal.o ./Src/adc_driver_hal.su ./Src/cmd_driver.d ./Src/cmd_driver.o ./Src/cmd_driver.su ./Src/exti_driver_hal.d ./Src/exti_driver_hal.o ./Src/exti_driver_hal.su ./Src/gpio_driver_hal.d ./Src/gpio_driver_hal.o ./Src/gpio_driver_hal.su ./Src/i2c_driver_hal.d ./Src/i2c_driver_hal.o ./Src/i2c_driver_hal.su ./Src/pll_driver_hal.d ./Src/pll_driver_hal.o ./Src/pll_driver_hal.su ./Src/pwm_driver_hal.d ./Src/pwm_driver_hal.o ./Src/pwm_driver_hal.su ./Src/systick_driver_hal.d ./Src/systick_driver_hal.o ./Src/systick_driver_hal.su ./Src/timer_driver_hal.d ./Src/timer_driver_hal.o ./Src/timer_driver_hal.su ./Src/usart_driver_hal.d ./Src/usart_driver_hal.o ./Src/usart_driver_hal.su
+rm -rf libPeripheralsDrivers.a
  
-arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"Startup/startup_stm32f411retx.d" -MT"Startup/startup_stm32f411retx.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Startup/startup_stm32f411retx.o" "../Startup/startup_stm32f411retx.s"
-arm-none-eabi-gcc "../Src/main1.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE -c -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/PeripheralsDrivers/Inc" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/main1.d" -MT"Src/main1.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main1.o"
-arm-none-eabi-gcc "../Src/syscalls.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE -c -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/PeripheralsDrivers/Inc" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/syscalls.d" -MT"Src/syscalls.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/syscalls.o"
-arm-none-eabi-gcc "../Src/sysmem.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE -c -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/PeripheralsDrivers/Inc" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/sysmem.d" -MT"Src/sysmem.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/sysmem.o"
-arm-none-eabi-gcc -o "Wheels_Test.elf" @"objects.list"  -lPeripheralsDrivers -mcpu=cortex-m4 -T"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Wheels_Test/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Wheels_Test.map" -Wl,--gc-sections -static -L"/home/aristizabal/Documents/Repositories/Robotica_2024_01/PeripheralsDrivers/Debug" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Wheels_Test.elf
- 
-arm-none-eabi-size   Wheels_Test.elf 
-   text	   data	    bss	    dec	    hex	filename
-  41504	    476	   2364	  44344	   ad38	Wheels_Test.elf
-Finished building: default.size.stdout
- 
-arm-none-eabi-objdump -h -S  Wheels_Test.elf  > "Wheels_Test.list"
-Finished building: Wheels_Test.list
- 
+arm-none-eabi-gcc "../Src/adc_driver_hal.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE -c -I../Inc -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/adc_driver_hal.d" -MT"Src/adc_driver_hal.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/adc_driver_hal.o"
+arm-none-eabi-gcc "../Src/cmd_driver.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE -c -I../Inc -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/cmd_driver.d" -MT"Src/cmd_driver.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/cmd_driver.o"
+../Src/cmd_driver.c: In function 'parseCommands':
+../Src/cmd_driver.c:126:19: error: 'usart1Comm' undeclared (first use in this function)
+  126 |   usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
+      |                   ^~~~~~~~~~
+../Src/cmd_driver.c:126:19: note: each undeclared identifier is reported only once for each function it appears in
+../Src/cmd_driver.c:145:5: warning: implicit declaration of function 'forwardMove' [-Wimplicit-function-declaration]
+  145 |     forwardMove(secondParameter);
+      |     ^~~~~~~~~~~
+../Src/cmd_driver.c:154:5: warning: implicit declaration of function 'backwardMove' [-Wimplicit-function-declaration]
+  154 |     backwardMove(secondParameter);
+      |     ^~~~~~~~~~~~
+../Src/cmd_driver.c:168:22: error: 'PWM_L' undeclared (first use in this function)
+  168 |     updateDutyCycle(&PWM_L,(uint16_t)firstParameter);
+      |                      ^~~~~
+../Src/cmd_driver.c:169:22: error: 'PWM_R' undeclared (first use in this function); did you mean 'PWR'?
+  169 |     updateDutyCycle(&PWM_R,(uint16_t)secondParameter);
+      |                      ^~~~~
+      |                      PWR
+../Src/cmd_driver.c:187:7: error: 'flagEncR' undeclared (first use in this function)
+  187 |    if(flagEncR){
+      |       ^~~~~~~~
+../Src/cmd_driver.c:188:37: error: 'counter_R' undeclared (first use in this function)
+  188 |     sprintf(bufferMsg,"Right,%u\n", counter_R);
+      |                                     ^~~~~~~~~
+../Src/cmd_driver.c:192:7: error: 'flagEncL' undeclared (first use in this function)
+  192 |    if(flagEncL){
+      |       ^~~~~~~~
+../Src/cmd_driver.c:193:36: error: 'counter_L' undeclared (first use in this function)
+  193 |     sprintf(bufferMsg,"Left,%u\n", counter_L);
+      |                                    ^~~~~~~~~
+../Src/cmd_driver.c:206:3: error: 'counterPercDuty' undeclared (first use in this function)
+  206 |   counterPercDuty = 0;
+      |   ^~~~~~~~~~~~~~~
+../Src/cmd_driver.c:225:7: error: 'flagPeriod' undeclared (first use in this function)
+  225 |    if(flagPeriod){
+      |       ^~~~~~~~~~
+../Src/cmd_driver.c:235:5: warning: implicit declaration of function 'turnOff' [-Wimplicit-function-declaration]
+  235 |     turnOff();
+      |     ^~~~~~~
+../Src/cmd_driver.c:251:3: error: 'flagStop' undeclared (first use in this function)
+  251 |   flagStop = 1;
+      |   ^~~~~~~~
+../Src/cmd_driver.c:257:3: warning: implicit declaration of function 'turnOn' [-Wimplicit-function-declaration]
+  257 |   turnOn();
+      |   ^~~~~~
+make: *** [Src/subdir.mk:46: Src/cmd_driver.o] Error 1
+"make clean all" terminated with exit code 2. Build might be incomplete.

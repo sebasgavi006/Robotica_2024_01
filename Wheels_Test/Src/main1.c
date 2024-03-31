@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 #include <stdint.h>
-#include "string.h"
+//#include "string.h"
 #include <stdio.h>
 #include <math.h>
 #include "stm32f4xx.h"
@@ -79,11 +79,11 @@ GPIO_Handler_t handlerPinRX		= {0};
 USART_Handler_t usart1Comm		= {0};
 
 
-char bufferMsg[128] = {0};
-char bufferReceiver[64] = {0};
-uint8_t rxData = 0;
-uint8_t counterReception = 0;
-uint8_t stringComplete = 0;
+//char bufferMsg[128] = {0};
+//char bufferReceiver[64] = {0};
+//uint8_t rxData = 0;
+//uint8_t counterReception = 0;
+//uint8_t stringComplete = 0;
 
 // Variables para los comandos
 char cmd[128] = {0};
@@ -104,7 +104,7 @@ uint8_t flagStop = 0;
 void initSystem(void);
 void forwardMove(uint8_t dutyPercentage);
 void backwardMove(uint8_t dutyPercentage);
-void parseCommands(char  *ptrbufferReception);
+//void parseCommands(char  *ptrbufferReception);
 void turnOff(void);
 void turnOn(void);
 
@@ -431,153 +431,6 @@ void turnOn(void){
 	// Enciente los PWM
 	startPwmSignal(&PWM_R);
 	startPwmSignal(&PWM_L);
-
-}
-
-void parseCommands(char  *ptrbufferReception){
-
-	sscanf(ptrbufferReception,"%s %u %u %s",cmd,&firstParameter,&secondParameter,lastString);
-	//Comando para solicitar ayuda
-	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
-
-		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
-
-
-		usart_WriteMsg(&usart1Comm, "6) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart1Comm, "7) Resume \" Resume @\" \n");
-
-	}
-
-	else if (strcmp(cmd, "Dir") == 0) {
-
-		// firstParameter indica la direccion, secondParameter es el dutyCycle
-		if (firstParameter == 0 && secondParameter >= 0){
-			if (defaultSpeed != 0){
-				forwardMove(secondParameter);
-			}
-			else{
-				forwardMove(10);
-			}
-			usart_WriteMsg(&usart1Comm, "Moviéndose hacia adelante \n");
-		}
-		else if (firstParameter == 1 && secondParameter >= 0){
-			if (defaultSpeed != 0){
-				backwardMove(secondParameter);
-			}
-			else{
-				backwardMove(10);
-			}
-			usart_WriteMsg(&usart1Comm, "Moviéndose hacia atrás \n");
-		}
-		defaultSpeed = 0;
-	}
-
-	else if(strcmp(cmd, "Spd") == 0) {
-			if (firstParameter > 0) {
-
-				defaultSpeed = firstParameter;
-				updateDutyCycle(&PWM_L,(uint16_t)firstParameter);
-				updateDutyCycle(&PWM_R,(uint16_t)secondParameter);
-
-				sprintf(bufferMsg,"Velocidad actualizada: %u, %u \n",firstParameter, secondParameter);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-			}
-			else{
-				usart_WriteMsg(&usart1Comm, "Porcentaje debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
-			}
-	}
-
-	else if(strcmp(cmd, "TestE") == 0) {
-
-		usart_WriteMsg(&usart1Comm, "Iniciando Test Encoders\n");
-		forwardMove(firstParameter);
-
-		rxData = '\0';
-		// Conteo y muestra de las interrupciones del encoder
-		while(rxData == '\0'){
-			if(flagEncR){
-				sprintf(bufferMsg,"Right,%u\n", counter_R);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncR = 0;
-			}
-			if(flagEncL){
-				sprintf(bufferMsg,"Left,%u\n", counter_L);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncL = 0;
-			}
-		}
-	}
-
-	else if(strcmp(cmd, "Test") == 0){
-
-		usart_WriteMsg(&usart1Comm, "Iniciando Test \n");
-		forwardMove(0);
-		counter_R = 0;
-		counter_L = 0;
-		counterPercDuty = 0;
-
-		rxData = '\0';
-		// Código para realizar el estudio del comportamiento de los motores y los encoders
-		while(rxData == '\0'){
-
-			// Conteo y muestra de las interrupciones del encoder
-			if(flagEncR){
-				sprintf(bufferMsg,"\nRight,%u,%u\n",counterPercDuty, counter_R);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncR ^= 1;
-			}
-			if(flagEncL){
-				sprintf(bufferMsg,"\nLeft,%u,%u\n",counterPercDuty, counter_L);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncL ^= 1;
-			}
-
-			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
-			if(flagPeriod){
-				counter_R = 0;
-				counter_L = 0;
-				counterPercDuty++;
-				updateDutyCycle(&PWM_R,(uint16_t) counterPercDuty);
-				updateDutyCycle(&PWM_L,(uint16_t) counterPercDuty);
-				flagPeriod ^= 1;
-			}
-			if(counterPercDuty == 99){
-				counterPercDuty = 0;
-				turnOff();
-				usart_WriteMsg(&usart1Comm, "Test finished \n");
-			}
-		}
-
-	}
-
-
-
-
-	else if (strcmp(cmd, "reset") == 0) {
-		usart_WriteMsg(&usart1Comm, "PWR_MGMT_1 reset \n");
-
-	}
-
-	else if (strcmp(cmd, "Stop") == 0) {
-		flagStop = 1;
-		turnOff();
-		usart_WriteMsg(&usart1Comm, "Detiene del sistema \n");
-	}
-
-	else if (strcmp(cmd, "Resume") == 0) {
-		turnOn();
-		usart_WriteMsg(&usart1Comm, "Reanuda del sistema \n");
-	}
-
-	else{
-		usart_WriteMsg(&usart1Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
-	}
-
 
 }
 
