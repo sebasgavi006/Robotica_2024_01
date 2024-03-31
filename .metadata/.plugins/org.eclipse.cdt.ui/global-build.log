@@ -1,4 +1,4 @@
-16:52:12 **** Incremental Build of configuration Debug for project Wheels_Test ****
+09:19:37 **** Incremental Build of configuration Debug for project Wheels_Test ****
 make clean all 
 rm -rf ./Startup/startup_stm32f411retx.d ./Startup/startup_stm32f411retx.o
 rm -rf ./Src/main1.d ./Src/main1.o ./Src/main1.su ./Src/syscalls.d ./Src/syscalls.o ./Src/syscalls.su ./Src/sysmem.d ./Src/sysmem.o ./Src/sysmem.su
