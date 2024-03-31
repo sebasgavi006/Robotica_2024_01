@@ -77,6 +77,7 @@ uint16_t counter_L = 0;
 GPIO_Handler_t handlerPinTX		= {0};
 GPIO_Handler_t handlerPinRX		= {0};
 USART_Handler_t usart1Comm		= {0};
+char bufferMsg[64] = {0};
 
 
 //char bufferMsg[128] = {0};

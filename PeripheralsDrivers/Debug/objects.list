@@ -1,5 +1,4 @@
 "./Src/adc_driver_hal.o"
-"./Src/cmd_driver.o"
 "./Src/exti_driver_hal.o"
 "./Src/gpio_driver_hal.o"
 "./Src/i2c_driver_hal.o"
