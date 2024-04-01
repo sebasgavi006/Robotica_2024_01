@@ -500,16 +500,23 @@ void parseCommands(char  *ptrbufferReception){
 		rxData = '\0';
 		// Conteo y muestra de las interrupciones del encoder
 		while(rxData == '\0'){
-			if(flagEncR){
-				sprintf(bufferMsg,"Right,%u\n", counter_R);
+//			if(flagEncR){
+//				sprintf(bufferMsg,"Right,%u\n", counter_R);
+//				usart_WriteMsg(&usart1Comm, bufferMsg);
+//				flagEncR = 0;
+//				rxData = '\0';
+//			}
+//			if(flagEncL){
+//				sprintf(bufferMsg,"Left,%u\n", counter_L);
+//				usart_WriteMsg(&usart1Comm, bufferMsg);
+//				flagEncL = 0;
+//				rxData = '\0';
+//			}
+			if(flagEncR || flagEncL){
+				sprintf(bufferMsg,"%.2f%% \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncR = 0;
 			}
-			if(flagEncL){
-				sprintf(bufferMsg,"Left,%u\n", counter_L);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncL = 0;
-			}
+
 		}
 	}
 
