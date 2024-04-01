@@ -277,7 +277,7 @@ void initSystem(void){
 	PWM_R.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_R.config.channel			= PWM_CHANNEL_1;
 	PWM_R.config.prescaler			= 100E3; 	// 1 ms
-	PWM_R.config.periodo			= 100;		// 500 ms
+	PWM_R.config.periodo			= 16;		// 500 ms
 	PWM_R.config.percDuty			= 0;		// Activo por 5 ms
 	pwm_Config(&PWM_R);
 
@@ -285,7 +285,7 @@ void initSystem(void){
 	PWM_L.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_L.config.channel			= PWM_CHANNEL_2;
 	PWM_L.config.prescaler			= 100E3; 	// 1 ms
-	PWM_L.config.periodo			= 100;		// 500 ms
+	PWM_L.config.periodo			= 16;		// 500 ms
 	PWM_L.config.percDuty			= 0;		// Activo por 5 ms
 	pwm_Config(&PWM_L);
 
@@ -515,6 +515,8 @@ void parseCommands(char  *ptrbufferReception){
 			if(flagEncR || flagEncL){
 				sprintf(bufferMsg,"%.2f%% \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
+				flagEncR = 0;
+				flagEncL = 0;
 			}
 
 		}
@@ -560,6 +562,25 @@ void parseCommands(char  *ptrbufferReception){
 			}
 		}
 
+	}
+
+
+	else if(strcmp(cmd, "Period") == 0) {
+			if (firstParameter > 0) {
+
+
+				PWM_L.config.periodo			= firstParameter;		// 500 ms
+				pwm_Config(&PWM_L);
+
+				PWM_R.config.periodo			= firstParameter;		// 500 ms
+				pwm_Config(&PWM_R);
+
+				sprintf(bufferMsg,"Periodo actualizado: %u \n",firstParameter);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Periodo debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
 	}
 
 
