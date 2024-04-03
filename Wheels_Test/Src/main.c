@@ -263,7 +263,7 @@ void initSystem(void){
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky*/
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 50E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
 	Tim_Blinky.TIMx_Config.TIMx_Period				= 2000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500 ms)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
@@ -276,17 +276,17 @@ void initSystem(void){
 	/* Configurando el PWM para el motor DERECHO */
 	PWM_R.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_R.config.channel			= PWM_CHANNEL_1;
-	PWM_R.config.prescaler			= 100E3; 	// 1 ms
-	PWM_R.config.periodo			= 16;		// 500 ms
-	PWM_R.config.percDuty			= 0;		// Activo por 5 ms
+	PWM_R.config.prescaler			= 50E3; 	// 0.5 ms
+	PWM_R.config.periodo			= 100;		// 50 ms
+	PWM_R.config.percDuty			= 0;
 	pwm_Config(&PWM_R);
 
 	/* Configurando el PWM para el motor IZQUIERDO */
 	PWM_L.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_L.config.channel			= PWM_CHANNEL_2;
-	PWM_L.config.prescaler			= 100E3; 	// 1 ms
-	PWM_L.config.periodo			= 16;		// 500 ms
-	PWM_L.config.percDuty			= 0;		// Activo por 5 ms
+	PWM_L.config.prescaler			= 50E3; 	// 0.5 ms
+	PWM_L.config.periodo			= 100;		// 50 ms
+	PWM_L.config.percDuty			= 0;
 	pwm_Config(&PWM_L);
 
 
@@ -457,7 +457,7 @@ void parseCommands(char  *ptrbufferReception){
 
 		// firstParameter indica la direccion, secondParameter es el dutyCycle
 		if (firstParameter == 0 && secondParameter >= 0){
-			if (defaultSpeed != 0){
+			if (defaultSpeed == 0){
 				forwardMove(secondParameter);
 			}
 			else{
@@ -466,7 +466,7 @@ void parseCommands(char  *ptrbufferReception){
 			usart_WriteMsg(&usart1Comm, "Moviéndose hacia adelante \n");
 		}
 		else if (firstParameter == 1 && secondParameter >= 0){
-			if (defaultSpeed != 0){
+			if (defaultSpeed == 0){
 				backwardMove(secondParameter);
 			}
 			else{
