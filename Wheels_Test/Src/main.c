@@ -86,10 +86,10 @@ uint8_t counterReception = 0;
 uint8_t stringComplete = 0;
 
 // Variables para los comandos
-char cmd[128] = {0};
+char cmd[64] = {0};
 unsigned int firstParameter = 0;
 unsigned int secondParameter = 0;
-char lastString[32] = {0};
+char lastString[64] = {0};
 
 // Variables globales para el funcionamiento del robot
 uint8_t defaultSpeed = 0;
@@ -533,21 +533,13 @@ void parseCommands(char  *ptrbufferReception){
 		rxData = '\0';
 		// Código para realizar el estudio del comportamiento de los motores y los encoders
 		while(rxData == '\0'){
-
-			// Conteo y muestra de las interrupciones del encoder
-			if(flagEncR){
-				sprintf(bufferMsg,"\nRight,%u,%u\n",counterPercDuty, counter_R);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncR ^= 1;
-			}
-			if(flagEncL){
-				sprintf(bufferMsg,"\nLeft,%u,%u\n",counterPercDuty, counter_L);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncL ^= 1;
-			}
-
 			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
 			if(flagPeriod){
+				sprintf(bufferMsg,"\nRight,%u,%u\n",counterPercDuty, counter_R);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+				sprintf(bufferMsg,"\nLeft,%u,%u\n",counterPercDuty, counter_L);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+
 				counter_R = 0;
 				counter_L = 0;
 				counterPercDuty++;
@@ -631,14 +623,14 @@ void usart1_RxCallback(void){
 
 /* Interrupciones para el encoder derecho */
 void callback_ExtInt1(void){
-	flagEncR = 1;
+	//flagEncR = 1;
 	counter_R++;
 }
 
 
 /* Interrupciones para el encoder izquierdo */
 void callback_ExtInt3(void){
-	flagEncL = 1;
+	//flagEncL = 1;
 	counter_L++;
 
 }
