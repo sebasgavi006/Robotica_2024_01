@@ -87,8 +87,8 @@ uint8_t stringComplete = 0;
 
 // Variables para los comandos
 char cmd[64] = {0};
-unsigned int firstParameter = 0;
-unsigned int secondParameter = 0;
+float firstParameter = 0;
+float secondParameter = 0;
 char lastString[64] = {0};
 
 // Variables globales para el funcionamiento del robot
@@ -102,8 +102,8 @@ uint8_t flagStop = 0;
 
 // Funciones privadas
 void initSystem(void);
-void forwardMove(uint8_t dutyPercentage);
-void backwardMove(uint8_t dutyPercentage);
+void forwardMove(float dutyPercentage);
+void backwardMove(float dutyPercentage);
 void parseCommands(char  *ptrbufferReception);
 void turnOff(void);
 void turnOn(void);
@@ -111,6 +111,7 @@ void turnOn(void);
 /* ===== Función principal del programa ===== */
 int main(void){
 
+	SCB->CPACR |= 0xf<<20;
 
 	// Configuramos el PLL para que el micro corra a 100MHz
 	systemClock_100MHz(&pllHandler);
@@ -173,6 +174,8 @@ int main(void){
 
 // Función para configurar los periféricos iniciales del sistemas
 void initSystem(void){
+
+
 
 	// 1. ===== PUERTOS Y PINES =====
 	/* Configurando el pin para el Blinky */
@@ -276,16 +279,16 @@ void initSystem(void){
 	/* Configurando el PWM para el motor DERECHO */
 	PWM_R.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_R.config.channel			= PWM_CHANNEL_1;
-	PWM_R.config.prescaler			= 50E3; 	// 0.5 ms
-	PWM_R.config.periodo			= 100;		// 50 ms
+	PWM_R.config.prescaler			= 50E2; 	// 0.5 ms
+	PWM_R.config.periodo			= 1000;		// 50 ms
 	PWM_R.config.percDuty			= 0;
 	pwm_Config(&PWM_R);
 
 	/* Configurando el PWM para el motor IZQUIERDO */
 	PWM_L.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_L.config.channel			= PWM_CHANNEL_2;
-	PWM_L.config.prescaler			= 50E3; 	// 0.5 ms
-	PWM_L.config.periodo			= 100;		// 50 ms
+	PWM_L.config.prescaler			= 50E2; 	// 0.5 ms
+	PWM_L.config.periodo			= 1000;		// 50 ms
 	PWM_L.config.percDuty			= 0;
 	pwm_Config(&PWM_L);
 
@@ -293,12 +296,13 @@ void initSystem(void){
 	// 4. ====== EXTI =====
 	/* Condigurando EXTI1 - Encoder Derecho */
 	Exti_R.pGPIOHandler				= &GPIO_Exti_R;
+//	Exti_R.edgeType					= EXTERNAL_INTERRUPT_BOTH_EDGES;
 	Exti_R.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
 	exti_Config(&Exti_R);
 
 	/* Condigurando EXTI3 - Encoder Izquierdo */
 	Exti_L.pGPIOHandler				= &GPIO_Exti_L;
-	Exti_L.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
+	Exti_L.edgeType					= EXTERNAL_INTERRUPT_BOTH_EDGES;
 	exti_Config(&Exti_L);
 
 	// 5. ====== SYSTICK =====
@@ -339,7 +343,7 @@ void initSystem(void){
 
 // Función para mover hacia adelante
 
-void forwardMove(uint8_t dutyPercentage){
+void forwardMove(float dutyPercentage){
 
 	stopPwmSignal(&PWM_R);
 	stopPwmSignal(&PWM_L);
@@ -372,7 +376,7 @@ void forwardMove(uint8_t dutyPercentage){
 }
 
 
-void backwardMove(uint8_t dutyPercentage){
+void backwardMove(float dutyPercentage){
 
 	stopPwmSignal(&PWM_R);
 	stopPwmSignal(&PWM_L);
@@ -436,7 +440,7 @@ void turnOn(void){
 
 void parseCommands(char  *ptrbufferReception){
 
-	sscanf(ptrbufferReception,"%s %u %u %s",cmd,&firstParameter,&secondParameter,lastString);
+	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
 	if(strcmp(cmd, "help") == 0){
 		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
@@ -484,7 +488,7 @@ void parseCommands(char  *ptrbufferReception){
 				updateDutyCycle(&PWM_L,(uint16_t)firstParameter);
 				updateDutyCycle(&PWM_R,(uint16_t)secondParameter);
 
-				sprintf(bufferMsg,"Velocidad actualizada: %u, %u \n",firstParameter, secondParameter);
+				sprintf(bufferMsg,"Velocidad actualizada: %.2f, %.2f \n",firstParameter, secondParameter);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -513,7 +517,7 @@ void parseCommands(char  *ptrbufferReception){
 //				rxData = '\0';
 //			}
 			if(flagEncR || flagEncL){
-				sprintf(bufferMsg,"%.2f%% \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
+				sprintf(bufferMsg,"%u \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 				flagEncR = 0;
 				flagEncL = 0;
@@ -535,9 +539,9 @@ void parseCommands(char  *ptrbufferReception){
 		while(rxData == '\0'){
 			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
 			if(flagPeriod){
-				sprintf(bufferMsg,"\nRight,%u,%u\n",counterPercDuty, counter_R);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				sprintf(bufferMsg,"\nLeft,%u,%u\n",counterPercDuty, counter_L);
+
+				sprintf(bufferMsg,"%u \t %u \t %u \n",counter_L,counter_R, counterPercDuty);
+
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_R = 0;
@@ -560,14 +564,12 @@ void parseCommands(char  *ptrbufferReception){
 	else if(strcmp(cmd, "Period") == 0) {
 			if (firstParameter > 0) {
 
+				updateFrequency(&PWM_L, firstParameter);
+				updateFrequency(&PWM_R, firstParameter);
 
-				PWM_L.config.periodo			= firstParameter;		// 500 ms
-				pwm_Config(&PWM_L);
 
-				PWM_R.config.periodo			= firstParameter;		// 500 ms
-				pwm_Config(&PWM_R);
 
-				sprintf(bufferMsg,"Periodo actualizado: %u \n",firstParameter);
+				sprintf(bufferMsg,"Periodo actualizado: %.2f \n",firstParameter);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{

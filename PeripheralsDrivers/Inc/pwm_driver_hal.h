@@ -33,8 +33,8 @@ typedef struct
 	uint8_t		channel; 		// Canal PWM relacionado con el TIMER
 	uint32_t	prescaler;		// A qué velocidad se incrementa el Timer -> PSC (Determina la "unidad" de tiempo para el periodo)
 	uint16_t	periodo;		// Indica el número de veces que el Timer se incrementa -> ARR. Representa el periodo del PWM (PSC * ARR)
-	uint16_t	dutyCycle;		// Es un valor entre 0-ARR, en el cual estará activa la señal dentro del periodo del PWM.
-	uint8_t		percDuty;		// POrcentaje del DuttyCycle
+	uint8_t	dutyCycle;		// Es un valor entre 0-ARR, en el cual estará activa la señal dentro del periodo del PWM.
+	float		percDuty;		// POrcentaje del DuttyCycle
 	uint8_t		polarity;		// Cuando es x, invierte la forma del PWM de acuerdo a la configuración actual
 }PWM_Config_t;
 
@@ -49,9 +49,11 @@ typedef struct
 /* Funciones públicas del PWM */
 void pwm_Config(PWM_Handler_t *ptrPwmHandler);
 void setFrequency(PWM_Handler_t *ptrPwmHandler);
-void updateFrequency(PWM_Handler_t *ptrPwmHandler, uint16_t newPeriod);
+void setPeriod(PWM_Handler_t *ptrPwmHandler);
+void updateFrequency(PWM_Handler_t *ptrPwmHandler, uint16_t newFrq);
+void updatePeriod(PWM_Handler_t *ptrPwmHandler, uint16_t newPeriod);
 void setDutyCycle(PWM_Handler_t *ptrPwmHandler);
-void updateDutyCycle(PWM_Handler_t *ptrPwmHandler, uint8_t newDuty);
+void updateDutyCycle(PWM_Handler_t *ptrPwmHandler, float newDuty);
 void enableOutput(PWM_Handler_t *ptrPwmHandler);
 void startPwmSignal(PWM_Handler_t *ptrPwmHandler);
 void stopPwmSignal(PWM_Handler_t *ptrPwmHandler);

@@ -277,6 +277,21 @@ void selectPolarity(PWM_Handler_t *ptrPwmHandler){
  * y el valor límite al que llega el Timer (ARR), con estos dos se establece
  * la frecuencia.
  * */
+void setPeriod(PWM_Handler_t *ptrPwmHandler){
+
+	// Cargamos el valor del prescaler, nos define la velocidad (en ms) a la cual
+	// se incrementa el Timer. (Define la escala de tiempo. 1ms -> PSC = 16000 -> Signal Clock = 16 MHz
+	ptrPwmHandler->ptrTIMx->PSC = ptrPwmHandler->config.prescaler;	// Determina un valor de referencia para el tiempo
+
+	// Cargamos el valor del ARR, el cual es el límite de incrementos del Timer
+	// antes de hacer un update y reload.
+	ptrPwmHandler->ptrTIMx->ARR = ptrPwmHandler->config.periodo;	// Determina cuántas unidades de tiempo pasan (Periodo)
+
+	/*
+	 * El producto PSC * ARR determina el periodo del PWM
+	 */
+}
+
 void setFrequency(PWM_Handler_t *ptrPwmHandler){
 
 	// Cargamos el valor del prescaler, nos define la velocidad (en ms) a la cual
@@ -293,11 +308,23 @@ void setFrequency(PWM_Handler_t *ptrPwmHandler){
 }
 
 
+
 /* Función para actualizar la frecuencia, funciona de la mano con setFrequency */
-void updateFrequency(PWM_Handler_t *ptrPwmHandler, uint16_t newPeriod){
+void updatePeriod(PWM_Handler_t *ptrPwmHandler, uint16_t newPeriod){
 
 	// Actualizamos el registro que manipula el periodo
     ptrPwmHandler->config.periodo = newPeriod;
+
+	// Llamamos a la fucnión que cambia la frecuencia
+	setPeriod(ptrPwmHandler);
+}
+
+
+/* Función para actualizar la frecuencia, funciona de la mano con setFrequency */
+void updateFrequency(PWM_Handler_t *ptrPwmHandler, uint16_t newFrq){
+
+	// Actualizamos el registro que manipula el periodo
+    ptrPwmHandler->config.periodo = newFrq;
 
 	// Llamamos a la fucnión que cambia la frecuencia
 	setFrequency(ptrPwmHandler);
@@ -345,7 +372,7 @@ void setDutyCycle(PWM_Handler_t *ptrPwmHandler){
 
 
 /* Función para actualizar el Dutty, funciona de la mano con setDuttyCycle */
-void updateDutyCycle(PWM_Handler_t *ptrPwmHandler, uint8_t newDuty){
+void updateDutyCycle(PWM_Handler_t *ptrPwmHandler, float newDuty){
 	// Actualizamos el registro que manipula el dutty
     ptrPwmHandler->config.percDuty = newDuty;
 
