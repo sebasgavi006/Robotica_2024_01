@@ -33,7 +33,7 @@ typedef struct
 	uint8_t		channel; 		// Canal PWM relacionado con el TIMER
 	uint32_t	prescaler;		// A qué velocidad se incrementa el Timer -> PSC (Determina la "unidad" de tiempo para el periodo)
 	uint16_t	periodo;		// Indica el número de veces que el Timer se incrementa -> ARR. Representa el periodo del PWM (PSC * ARR)
-	uint8_t	dutyCycle;		// Es un valor entre 0-ARR, en el cual estará activa la señal dentro del periodo del PWM.
+	uint8_t		dutyCycle;		// Es un valor entre 0-ARR, en el cual estará activa la señal dentro del periodo del PWM.
 	float		percDuty;		// POrcentaje del DuttyCycle
 	uint8_t		polarity;		// Cuando es x, invierte la forma del PWM de acuerdo a la configuración actual
 }PWM_Config_t;

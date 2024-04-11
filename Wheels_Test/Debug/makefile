@@ -59,8 +59,8 @@ all: main-build
 main-build: Wheels_Test.elf secondary-outputs
 
 # Tool invocations
-Wheels_Test.elf Wheels_Test.map: $(OBJS) $(USER_OBJS) /home/aristizabal/Documents/Repositories/Robotica_2024_01/Wheels_Test/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Wheels_Test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Wheels_Test/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Wheels_Test.map" -Wl,--gc-sections -static -L"/home/aristizabal/Documents/Repositories/Robotica_2024_01/PeripheralsDrivers/Debug" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Wheels_Test.elf Wheels_Test.map: $(OBJS) $(USER_OBJS) /home/sebas/Repositories/GitHub/Robotica_2024_01/Wheels_Test/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Wheels_Test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/sebas/Repositories/GitHub/Robotica_2024_01/Wheels_Test/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Wheels_Test.map" -Wl,--gc-sections -static -L"/home/sebas/Repositories/GitHub/Robotica_2024_01/PeripheralsDrivers/Debug" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

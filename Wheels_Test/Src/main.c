@@ -95,16 +95,21 @@ char lastString[64] = {0};
 uint8_t defaultSpeed = 0;
 uint8_t counterPeriod = 0;
 uint8_t flagPeriod = 0;
+uint8_t flagTimer = 0;
 uint8_t counterPercDuty = 0;
 uint8_t flagEncR = 0;
 uint8_t flagEncL = 0;
 uint8_t flagStop = 0;
+
+float percDutyR = 0;
+float percDutyL = 0;
 
 // Funciones privadas
 void initSystem(void);
 void forwardMove(float dutyPercentage);
 void backwardMove(float dutyPercentage);
 void parseCommands(char  *ptrbufferReception);
+void notnamed(float percDutyR, float percDutyL, uint16_t counts , float deltaDuty);
 void turnOff(void);
 void turnOn(void);
 
@@ -128,8 +133,12 @@ int main(void){
 //	forwardMove(1);
 	counterPeriod = 0;
 	counterPercDuty = 0;
+	percDutyR = 0;
+	percDutyL = 0;
 	flagEncR = 0;
 	flagEncL = 0;
+	flagTimer = 0;
+	flagPeriod = 0;
 
 
 	/* Loop forever */
@@ -266,8 +275,8 @@ void initSystem(void){
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky*/
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 50E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 2000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500 ms)
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 10E3;	// Genera incrementos de 0.1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 5000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500 ms)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
@@ -279,16 +288,16 @@ void initSystem(void){
 	/* Configurando el PWM para el motor DERECHO */
 	PWM_R.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_R.config.channel			= PWM_CHANNEL_1;
-	PWM_R.config.prescaler			= 50E2; 	// 0.5 ms
-	PWM_R.config.periodo			= 1000;		// 50 ms
+	PWM_R.config.prescaler			= 50E2; 	// 0.05 ms
+	PWM_R.config.periodo			= 1000;		// 50 ms -> Frec. de 20 Hz
 	PWM_R.config.percDuty			= 0;
 	pwm_Config(&PWM_R);
 
 	/* Configurando el PWM para el motor IZQUIERDO */
 	PWM_L.ptrTIMx					= TIM5; // Timer5 usado para el PWM
 	PWM_L.config.channel			= PWM_CHANNEL_2;
-	PWM_L.config.prescaler			= 50E2; 	// 0.5 ms
-	PWM_L.config.periodo			= 1000;		// 50 ms
+	PWM_L.config.prescaler			= 50E2; 	// 0.05 ms
+	PWM_L.config.periodo			= 1000;		// 50 ms -> Frec. de 20 Hz
 	PWM_L.config.percDuty			= 0;
 	pwm_Config(&PWM_L);
 
@@ -296,8 +305,7 @@ void initSystem(void){
 	// 4. ====== EXTI =====
 	/* Condigurando EXTI1 - Encoder Derecho */
 	Exti_R.pGPIOHandler				= &GPIO_Exti_R;
-//	Exti_R.edgeType					= EXTERNAL_INTERRUPT_BOTH_EDGES;
-	Exti_R.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
+	Exti_R.edgeType					= EXTERNAL_INTERRUPT_BOTH_EDGES;
 	exti_Config(&Exti_R);
 
 	/* Condigurando EXTI3 - Encoder Izquierdo */
@@ -339,6 +347,62 @@ void initSystem(void){
 
 }
 
+
+// Función para ajustar automáticamente el movimiento de los motores
+void notnamed(float percDutyR, float percDutyL, uint16_t counts , float deltaDuty){
+
+	while(flagTimer){
+
+		if((counter_R != counts) || (counter_L != counts)){
+
+			// Control del motor derecho
+			if(counter_R < counts){
+
+				percDutyR = percDutyR+deltaDuty;
+				updateDutyCycle(&PWM_R, percDutyR);
+
+				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",percDutyR);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else if(counter_R > counts){
+
+				percDutyR = percDutyR-deltaDuty;
+				updateDutyCycle(&PWM_R, percDutyR);
+
+				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",percDutyR);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				updateDutyCycle(&PWM_R, percDutyR);
+			}
+
+			// Control del motor izquierdo
+			if(counter_L < counts){
+
+				percDutyL = percDutyL+deltaDuty;
+				updateDutyCycle(&PWM_L, percDutyL);
+
+				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",percDutyL);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else if(counter_L > counts){
+
+				percDutyL = percDutyL-deltaDuty;
+				updateDutyCycle(&PWM_L, percDutyL);
+
+				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",percDutyL);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				updateDutyCycle(&PWM_R, percDutyL);
+			}
+		}
+
+		flagTimer ^= 1;
+
+	} // Fin del while
+
+}
 
 
 // Función para mover hacia adelante
@@ -445,11 +509,14 @@ void parseCommands(char  *ptrbufferReception){
 	if(strcmp(cmd, "help") == 0){
 		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
 		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
+
 		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
 		usart_WriteMsg(&usart1Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
 		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
 
 		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
 
 
 		usart_WriteMsg(&usart1Comm, "6) Stop \" Stop @\" \n");
@@ -496,6 +563,67 @@ void parseCommands(char  *ptrbufferReception){
 			}
 	}
 
+	else if (strcmp(cmd, "Cuentas") == 0) {
+
+		if (firstParameter > 0 && secondParameter > 0) {
+
+			sprintf(bufferMsg,"Iniciando conteo \n");
+			usart_WriteMsg(&usart1Comm, bufferMsg);
+
+			counter_R = 0;
+			counter_L = 0;
+			flagEncR = 1;
+			flagEncR = 1;
+
+			forwardMove(firstParameter);
+
+			rxData = '\0';
+
+
+			while(rxData == '\0'){
+
+				if(counter_R >= secondParameter){
+
+					// Apaga el puente H para los motores
+					//gpio_WritePin(&GPIO_Enb_R, SET);
+
+					// Apaga los PWM
+					stopPwmSignal(&PWM_R);
+
+					sprintf(bufferMsg,"Conteo Encoder Derecho: %u \n",counter_R);
+					usart_WriteMsg(&usart1Comm, bufferMsg);
+					counter_R = 0;
+					flagEncR = 0;
+				}
+
+				if(counter_L >= secondParameter){
+
+					// Apaga el puente H para los motores
+					//gpio_WritePin(&GPIO_Enb_L, SET);
+
+					// Apaga los PWM
+					stopPwmSignal(&PWM_L);
+
+
+					sprintf(bufferMsg,"Conteo Encoder Izquierdo: %u \n",counter_L);
+					usart_WriteMsg(&usart1Comm, bufferMsg);
+					counter_L = 0;
+					flagEncL = 0;
+				}
+			}
+
+
+			flagEncR = 1;
+			flagEncL = 1;
+			sprintf(bufferMsg,"Conteo realizado \n");
+			usart_WriteMsg(&usart1Comm, bufferMsg);
+		}
+		else{
+			usart_WriteMsg(&usart1Comm, "El valor debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		}
+	}
+
+
 	else if(strcmp(cmd, "TestE") == 0) {
 
 		usart_WriteMsg(&usart1Comm, "Iniciando Test Encoders\n");
@@ -537,6 +665,12 @@ void parseCommands(char  *ptrbufferReception){
 		rxData = '\0';
 		// Código para realizar el estudio del comportamiento de los motores y los encoders
 		while(rxData == '\0'){
+
+			if(counterPeriod == 20){
+				flagPeriod ^= 1;
+				counterPeriod = 0;
+			}
+
 			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
 			if(flagPeriod){
 
@@ -560,12 +694,47 @@ void parseCommands(char  *ptrbufferReception){
 
 	}
 
+	else if(strcmp(cmd, "Ajuste") == 0){
 
-	else if(strcmp(cmd, "Period") == 0) {
+		if (firstParameter > 0 && secondParameter > 0){
+
+			percDutyR = 10;
+			percDutyL = 10;
+
+			rxData = '\0';
+			while(rxData == '\0'){
+				notnamed(percDutyR, percDutyL, firstParameter, secondParameter);
+			}
+		}
+		else{
+			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		}
+
+	}
+
+
+
+	else if(strcmp(cmd, "Freq") == 0) {
 			if (firstParameter > 0) {
 
 				updateFrequency(&PWM_L, firstParameter);
 				updateFrequency(&PWM_R, firstParameter);
+
+
+
+				sprintf(bufferMsg,"Frecuencia actualizado: %.2f \n",firstParameter);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "La Frecuencia debe ser positiva.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+	else if(strcmp(cmd, "Period") == 0) {
+			if (firstParameter > 0) {
+
+				updatePeriod(&PWM_L, firstParameter);
+				updatePeriod(&PWM_R, firstParameter);
 
 
 
@@ -609,10 +778,9 @@ void Timer2_Callback(void){
 	gpio_TooglePin(&stateLed);
 	gpio_TooglePin(&stateLedBoard);
 	counterPeriod++;
-	if(counterPeriod == 10){
-		flagPeriod ^= 1;
-		counterPeriod = 0;
-	}
+
+	// La vandera se levanta cada 500 ms
+	flagTimer ^= 1;
 }
 
 

@@ -323,8 +323,8 @@ void updatePeriod(PWM_Handler_t *ptrPwmHandler, uint16_t newPeriod){
 /* Función para actualizar la frecuencia, funciona de la mano con setFrequency */
 void updateFrequency(PWM_Handler_t *ptrPwmHandler, uint16_t newFrq){
 
-	// Actualizamos el registro que manipula el periodo
-    ptrPwmHandler->config.periodo = newFrq;
+	// La mínima unidad de tiempo es 0.05 ms -> Tener en cuenta a la hora de calcular FRECUENCIAS
+    ptrPwmHandler->config.periodo = (20000/newFrq);
 
 	// Llamamos a la fucnión que cambia la frecuencia
 	setFrequency(ptrPwmHandler);

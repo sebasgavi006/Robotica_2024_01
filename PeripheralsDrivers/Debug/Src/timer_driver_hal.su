@@ -1,5 +1,5 @@
-/home/aristizabal/STM32CubeIDE/Robotics/RTOS_workspace/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
-/home/aristizabal/STM32CubeIDE/Robotics/RTOS_workspace/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1724:22:__NVIC_DisableIRQ	16	static,ignoring_inline_asm
+/home/sebas/STM32Cube/Robotics/workspace_fundamentos_robotica/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
+/home/sebas/STM32Cube/Robotics/workspace_fundamentos_robotica/Software_Toolchain/STM32Cube_FW_F4_V1.27.0/Drivers/CMSIS/Include/core_cm4.h:1724:22:__NVIC_DisableIRQ	16	static,ignoring_inline_asm
 ../Src/timer_driver_hal.c:46:6:timer_Config	16	static,ignoring_inline_asm
 ../Src/timer_driver_hal.c:81:7:timer_enable_clock_peripheral	16	static,ignoring_inline_asm
 ../Src/timer_driver_hal.c:130:7:timer_set_prescaler	16	static
