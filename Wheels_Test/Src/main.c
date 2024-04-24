@@ -109,7 +109,7 @@ void initSystem(void);
 void forwardMove(float dutyPercentage);
 void backwardMove(float dutyPercentage);
 void parseCommands(char  *ptrbufferReception);
-void notnamed(float percDutyR, float percDutyL, uint16_t counts , float deltaDuty);
+void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty);
 void turnOff(void);
 void turnOn(void);
 
@@ -349,7 +349,7 @@ void initSystem(void){
 
 
 // Función para ajustar automáticamente el movimiento de los motores
-void notnamed(float percDutyR, float percDutyL, uint16_t counts , float deltaDuty){
+void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty){
 
 	while(flagTimer){
 
@@ -358,47 +358,65 @@ void notnamed(float percDutyR, float percDutyL, uint16_t counts , float deltaDut
 			// Control del motor derecho
 			if(counter_R < counts){
 
-				percDutyR = percDutyR+deltaDuty;
-				updateDutyCycle(&PWM_R, percDutyR);
+				*percDutyR = *percDutyR+deltaDuty;
+				updateDutyCycle(&PWM_R, *percDutyR);
 
-				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",percDutyR);
+				sprintf(bufferMsg,"Aum. duty der.: %.2f \n", *percDutyR);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_R = 0;
+
 			}
 			else if(counter_R > counts){
 
-				percDutyR = percDutyR-deltaDuty;
-				updateDutyCycle(&PWM_R, percDutyR);
+				*percDutyR = *percDutyR-deltaDuty;
+				updateDutyCycle(&PWM_R, *percDutyR);
 
-				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",percDutyR);
+				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyR);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_R = 0;
+
 			}
 			else{
-				updateDutyCycle(&PWM_R, percDutyR);
+				updateDutyCycle(&PWM_R, *percDutyR);
+
+				counter_R = 0;
+
 			}
 
 			// Control del motor izquierdo
 			if(counter_L < counts){
 
-				percDutyL = percDutyL+deltaDuty;
-				updateDutyCycle(&PWM_L, percDutyL);
+				*percDutyL = *percDutyL+deltaDuty;
+				updateDutyCycle(&PWM_L, *percDutyL);
 
-				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",percDutyL);
+				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",*percDutyL);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_L = 0;
+
 			}
 			else if(counter_L > counts){
 
-				percDutyL = percDutyL-deltaDuty;
-				updateDutyCycle(&PWM_L, percDutyL);
+				*percDutyL = *percDutyL-deltaDuty;
+				updateDutyCycle(&PWM_L, *percDutyL);
 
-				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",percDutyL);
+				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyL);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_L = 0;
+
 			}
 			else{
-				updateDutyCycle(&PWM_R, percDutyL);
+				updateDutyCycle(&PWM_R, *percDutyL);
+
+				counter_L = 0;
+
 			}
 		}
 
-		flagTimer ^= 1;
+		flagTimer = 0;
 
 	} // Fin del while
 
@@ -681,8 +699,8 @@ void parseCommands(char  *ptrbufferReception){
 				counter_R = 0;
 				counter_L = 0;
 				counterPercDuty++;
-				updateDutyCycle(&PWM_R,(uint16_t) counterPercDuty);
-				updateDutyCycle(&PWM_L,(uint16_t) counterPercDuty);
+				updateDutyCycle(&PWM_R, counterPercDuty);
+				updateDutyCycle(&PWM_L, counterPercDuty);
 				flagPeriod ^= 1;
 			}
 			if(counterPercDuty == 99){
@@ -696,14 +714,17 @@ void parseCommands(char  *ptrbufferReception){
 
 	else if(strcmp(cmd, "Ajuste") == 0){
 
+		usart_WriteMsg(&usart1Comm, "Realizando Ajuste \n");
+
 		if (firstParameter > 0 && secondParameter > 0){
 
 			percDutyR = 10;
 			percDutyL = 10;
+			forwardMove(percDutyR);
 
 			rxData = '\0';
 			while(rxData == '\0'){
-				notnamed(percDutyR, percDutyL, firstParameter, secondParameter);
+				notnamed(&percDutyR, &percDutyL, (uint16_t)firstParameter, secondParameter);
 			}
 		}
 		else{
@@ -780,7 +801,7 @@ void Timer2_Callback(void){
 	counterPeriod++;
 
 	// La vandera se levanta cada 500 ms
-	flagTimer ^= 1;
+	flagTimer = 1;
 }
 
 
