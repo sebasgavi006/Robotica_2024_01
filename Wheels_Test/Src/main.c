@@ -100,14 +100,16 @@ uint8_t counterPercDuty = 0;
 uint8_t flagEncR = 0;
 uint8_t flagEncL = 0;
 uint8_t flagStop = 0;
+float diameterWheel = 51.78; // Diámetro en mm
+
 
 float percDutyR = 0;
 float percDutyL = 0;
 
 // Funciones privadas
 void initSystem(void);
-void forwardMove(float dutyPercentage);
-void backwardMove(float dutyPercentage);
+void forwardMove(float percDutyL, float percDutyR);
+void backwardMove(float percDutyL, float percDutyR);
 void parseCommands(char  *ptrbufferReception);
 void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty);
 void turnOff(void);
@@ -391,7 +393,7 @@ void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaD
 				*percDutyL = *percDutyL+deltaDuty;
 				updateDutyCycle(&PWM_L, *percDutyL);
 
-				sprintf(bufferMsg,"Aum. duty der.: %.2f \n",*percDutyL);
+				sprintf(bufferMsg,"Aum. duty izq.: %.2f \n",*percDutyL);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_L = 0;
@@ -402,14 +404,14 @@ void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaD
 				*percDutyL = *percDutyL-deltaDuty;
 				updateDutyCycle(&PWM_L, *percDutyL);
 
-				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyL);
+				sprintf(bufferMsg,"Dism. duty izq.: %.2f \n",*percDutyL);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_L = 0;
 
 			}
 			else{
-				updateDutyCycle(&PWM_R, *percDutyL);
+				updateDutyCycle(&PWM_L, *percDutyL);
 
 				counter_L = 0;
 
@@ -425,7 +427,7 @@ void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaD
 
 // Función para mover hacia adelante
 
-void forwardMove(float dutyPercentage){
+void forwardMove(float percDutyL, float percDutyR){
 
 	stopPwmSignal(&PWM_R);
 	stopPwmSignal(&PWM_L);
@@ -448,8 +450,8 @@ void forwardMove(float dutyPercentage){
 	pwm_Config(&PWM_L);
 	selectPolarity(&PWM_L);
 
-	updateDutyCycle(&PWM_R,dutyPercentage);
-	updateDutyCycle(&PWM_L,dutyPercentage);
+	updateDutyCycle(&PWM_R,percDutyR);
+	updateDutyCycle(&PWM_L,percDutyL);
 
 	// Encendemos el PWM para mover el motor derecho
 	startPwmSignal(&PWM_R);
@@ -458,7 +460,7 @@ void forwardMove(float dutyPercentage){
 }
 
 
-void backwardMove(float dutyPercentage){
+void backwardMove(float percDutyL, float percDutyR){
 
 	stopPwmSignal(&PWM_R);
 	stopPwmSignal(&PWM_L);
@@ -481,8 +483,8 @@ void backwardMove(float dutyPercentage){
 	pwm_Config(&PWM_L);
 	selectPolarity(&PWM_L);
 
-	updateDutyCycle(&PWM_R,dutyPercentage);
-	updateDutyCycle(&PWM_L,dutyPercentage);
+	updateDutyCycle(&PWM_R,percDutyR);
+	updateDutyCycle(&PWM_L,percDutyL);
 
 	// Encendemos el PWM para mover el motor derecho
 	startPwmSignal(&PWM_R);
@@ -547,19 +549,19 @@ void parseCommands(char  *ptrbufferReception){
 		// firstParameter indica la direccion, secondParameter es el dutyCycle
 		if (firstParameter == 0 && secondParameter >= 0){
 			if (defaultSpeed == 0){
-				forwardMove(secondParameter);
+				forwardMove(secondParameter, secondParameter);
 			}
 			else{
-				forwardMove(10);
+				forwardMove(10, 10);
 			}
 			usart_WriteMsg(&usart1Comm, "Moviéndose hacia adelante \n");
 		}
 		else if (firstParameter == 1 && secondParameter >= 0){
 			if (defaultSpeed == 0){
-				backwardMove(secondParameter);
+				backwardMove(secondParameter, secondParameter);
 			}
 			else{
-				backwardMove(10);
+				backwardMove(10, 10);
 			}
 			usart_WriteMsg(&usart1Comm, "Moviéndose hacia atrás \n");
 		}
@@ -568,6 +570,9 @@ void parseCommands(char  *ptrbufferReception){
 
 	else if(strcmp(cmd, "Spd") == 0) {
 			if (firstParameter > 0) {
+
+				percDutyL = firstParameter;
+				percDutyR = secondParameter;
 
 				defaultSpeed = firstParameter;
 				updateDutyCycle(&PWM_L,(uint16_t)firstParameter);
@@ -593,7 +598,7 @@ void parseCommands(char  *ptrbufferReception){
 			flagEncR = 1;
 			flagEncR = 1;
 
-			forwardMove(firstParameter);
+			forwardMove(firstParameter, firstParameter);
 
 			rxData = '\0';
 
@@ -645,7 +650,7 @@ void parseCommands(char  *ptrbufferReception){
 	else if(strcmp(cmd, "TestE") == 0) {
 
 		usart_WriteMsg(&usart1Comm, "Iniciando Test Encoders\n");
-		forwardMove(firstParameter);
+		forwardMove(firstParameter,firstParameter);
 
 		rxData = '\0';
 		// Conteo y muestra de las interrupciones del encoder
@@ -675,7 +680,7 @@ void parseCommands(char  *ptrbufferReception){
 	else if(strcmp(cmd, "Test") == 0){
 
 		usart_WriteMsg(&usart1Comm, "Iniciando Test \n");
-		forwardMove(0);
+		forwardMove(0,0);
 		counter_R = 0;
 		counter_L = 0;
 		counterPercDuty = 0;
@@ -718,9 +723,7 @@ void parseCommands(char  *ptrbufferReception){
 
 		if (firstParameter > 0 && secondParameter > 0){
 
-			percDutyR = 10;
-			percDutyL = 10;
-			forwardMove(percDutyR);
+			forwardMove(percDutyL, percDutyR);
 
 			rxData = '\0';
 			while(rxData == '\0'){
