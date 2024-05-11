@@ -51,6 +51,7 @@ GPIO_Handler_t GPIO_Exti_L = {0};
 
 // Handler Timers
 Timer_Handler_t Tim_Blinky = {0};
+Timer_Handler_t Tim_Micros = {0};
 
 // Handler PWM motores
 PWM_Handler_t PWM_R = {0};
@@ -93,7 +94,8 @@ char lastString[64] = {0};
 
 // Variables globales para el funcionamiento del robot
 uint8_t defaultSpeed = 0;
-uint8_t counterPeriod = 0;
+uint8_t counterPeriodBlinky = 0;
+uint32_t counterPeriodMicros = 0;
 uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
 uint8_t counterPercDuty = 0;
@@ -106,6 +108,16 @@ float diameterWheel = 51.78; // Diámetro en mm
 float percDutyR = 0;
 float percDutyL = 0;
 
+// Variables globales del PID que va a solucionar los problemas capilares de Nerio
+
+// Constantes de Tuning del PID
+float kp, ki, kd = 0;
+uint32_t currTime, prevTime = 0;
+float prevError, devError, integralError = 0;
+float deltaError, deltaTime = 0;
+float u_PID = 0;
+
+
 // Funciones privadas
 void initSystem(void);
 void forwardMove(float percDutyL, float percDutyR);
@@ -114,6 +126,8 @@ void parseCommands(char  *ptrbufferReception);
 void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty);
 void turnOff(void);
 void turnOn(void);
+void PID(uint16_t target, uint16_t measure);
+
 
 /* ===== Función principal del programa ===== */
 int main(void){
@@ -133,7 +147,8 @@ int main(void){
 	sprintf(bufferMsg, "Saludos terrícolas, soy OPPY \n");
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 //	forwardMove(1);
-	counterPeriod = 0;
+	counterPeriodBlinky = 0;
+	counterPeriodMicros = 0;
 	counterPercDuty = 0;
 	percDutyR = 0;
 	percDutyL = 0;
@@ -275,14 +290,23 @@ void initSystem(void){
 
 
 	// 2. ===== TIMERS =====
-	/* Configurando el Timer del Blinky*/
-	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 10E3;	// Genera incrementos de 0.1 ms. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 5000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500 ms)
+	/* Configurando el Timer del Blinky */
+	Tim_Blinky.pTIMx								= TIM3;
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 10E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 10000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
 	timer_SetState(&Tim_Blinky, TIMER_ON);
+
+	/* Configurando el Timer para el PID (En microsegundos) */
+	Tim_Micros.pTIMx								= TIM2;
+	Tim_Micros.TIMx_Config.TIMx_Prescaler			= 100;	// Genera incrementos de 1us. El micro está a 100MHz
+	Tim_Micros.TIMx_Config.TIMx_Period				= 10;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (10us ms)
+	Tim_Micros.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
+	Tim_Micros.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
+	timer_Config(&Tim_Micros);
+	timer_SetState(&Tim_Micros, TIMER_ON);
 
 
 	// 3. ===== PWM =====
@@ -346,182 +370,12 @@ void initSystem(void){
 	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
 	usart_Config(&usart1Comm);
 
-
 }
 
-
-// Función para ajustar automáticamente el movimiento de los motores
-void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty){
-
-	while(flagTimer){
-
-		if((counter_R != counts) || (counter_L != counts)){
-
-			// Control del motor derecho
-			if(counter_R < counts){
-
-				*percDutyR = *percDutyR+deltaDuty;
-				updateDutyCycle(&PWM_R, *percDutyR);
-
-				sprintf(bufferMsg,"Aum. duty der.: %.2f \n", *percDutyR);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-
-				counter_R = 0;
-
-			}
-			else if(counter_R > counts){
-
-				*percDutyR = *percDutyR-deltaDuty;
-				updateDutyCycle(&PWM_R, *percDutyR);
-
-				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyR);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-
-				counter_R = 0;
-
-			}
-			else{
-				updateDutyCycle(&PWM_R, *percDutyR);
-
-				counter_R = 0;
-
-			}
-
-			// Control del motor izquierdo
-			if(counter_L < counts){
-
-				*percDutyL = *percDutyL+deltaDuty;
-				updateDutyCycle(&PWM_L, *percDutyL);
-
-				sprintf(bufferMsg,"Aum. duty izq.: %.2f \n",*percDutyL);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-
-				counter_L = 0;
-
-			}
-			else if(counter_L > counts){
-
-				*percDutyL = *percDutyL-deltaDuty;
-				updateDutyCycle(&PWM_L, *percDutyL);
-
-				sprintf(bufferMsg,"Dism. duty izq.: %.2f \n",*percDutyL);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-
-				counter_L = 0;
-
-			}
-			else{
-				updateDutyCycle(&PWM_L, *percDutyL);
-
-				counter_L = 0;
-
-			}
-		}
-
-		flagTimer = 0;
-
-	} // Fin del while
-
-}
-
-
-// Función para mover hacia adelante
-
-void forwardMove(float percDutyL, float percDutyR){
-
-	stopPwmSignal(&PWM_R);
-	stopPwmSignal(&PWM_L);
-
-	// Encendemos el puente H
-	gpio_WritePin(&GPIO_Enb_R, RESET);	// Prende motor derecho
-	gpio_WritePin(&GPIO_Enb_L, RESET);	// Apaga motor izquierdo
-
-	// Seteamos la dirección del motor
-	gpio_WritePin(&GPIO_Dir_R, SET);
-	gpio_WritePin(&GPIO_Dir_L, RESET);
-
-
-	PWM_R.config.polarity	= PWM_POLARITY_INVERSE;
-	pwm_Config(&PWM_R);
-	selectPolarity(&PWM_R);
-
-
-	PWM_L.config.polarity	= PWM_POLARITY_DIRECT;
-	pwm_Config(&PWM_L);
-	selectPolarity(&PWM_L);
-
-	updateDutyCycle(&PWM_R,percDutyR);
-	updateDutyCycle(&PWM_L,percDutyL);
-
-	// Encendemos el PWM para mover el motor derecho
-	startPwmSignal(&PWM_R);
-	startPwmSignal(&PWM_L);
-
-}
-
-
-void backwardMove(float percDutyL, float percDutyR){
-
-	stopPwmSignal(&PWM_R);
-	stopPwmSignal(&PWM_L);
-
-	// Encendemos el puente H
-	gpio_WritePin(&GPIO_Enb_R, RESET);	// Prende motor derecho
-	gpio_WritePin(&GPIO_Enb_L, RESET);	// Apaga motor izquierdo
-
-	// Seteamos la dirección del motor
-	gpio_WritePin(&GPIO_Dir_R, RESET);
-	gpio_WritePin(&GPIO_Dir_L, SET);
-
-
-	PWM_R.config.polarity	= PWM_POLARITY_DIRECT;
-	pwm_Config(&PWM_R);
-	selectPolarity(&PWM_R);
-
-
-	PWM_L.config.polarity	= PWM_POLARITY_INVERSE;
-	pwm_Config(&PWM_L);
-	selectPolarity(&PWM_L);
-
-	updateDutyCycle(&PWM_R,percDutyR);
-	updateDutyCycle(&PWM_L,percDutyL);
-
-	// Encendemos el PWM para mover el motor derecho
-	startPwmSignal(&PWM_R);
-	startPwmSignal(&PWM_L);
-
-}
 
 /*
- * Funcipon para apagar el sistema
+ * Función para los comandos
  */
-void turnOff(void){
-
-	// Apaga el puente H para los motores
-	gpio_WritePin(&GPIO_Enb_R, SET);
-	gpio_WritePin(&GPIO_Enb_L, SET);
-
-	// Apaga los PWM
-	stopPwmSignal(&PWM_R);
-	stopPwmSignal(&PWM_L);
-
-}
-
-/*
- * Funcipon para encender el sistema
- */
-void turnOn(void){
-
-	// Enciente el puente H de los motores
-	gpio_WritePin(&GPIO_Enb_R, RESET);
-	gpio_WritePin(&GPIO_Enb_L, RESET);
-
-	// Enciente los PWM
-	startPwmSignal(&PWM_R);
-	startPwmSignal(&PWM_L);
-
-}
-
 void parseCommands(char  *ptrbufferReception){
 
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
@@ -689,9 +543,9 @@ void parseCommands(char  *ptrbufferReception){
 		// Código para realizar el estudio del comportamiento de los motores y los encoders
 		while(rxData == '\0'){
 
-			if(counterPeriod == 20){
+			if(counterPeriodBlinky == 20){
 				flagPeriod ^= 1;
-				counterPeriod = 0;
+				counterPeriodBlinky = 0;
 			}
 
 			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
@@ -797,13 +651,236 @@ void parseCommands(char  *ptrbufferReception){
 }
 
 
+// Función para ajustar automáticamente el movimiento de los motores
+void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty){
+
+	while(flagTimer){
+
+		if((counter_R != counts) || (counter_L != counts)){
+
+			// Control del motor derecho
+			if(counter_R < counts){
+
+				*percDutyR = *percDutyR+deltaDuty;
+				updateDutyCycle(&PWM_R, *percDutyR);
+
+				sprintf(bufferMsg,"Aum. duty der.: %.2f \n", *percDutyR);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_R = 0;
+
+			}
+			else if(counter_R > counts){
+
+				*percDutyR = *percDutyR-deltaDuty;
+				updateDutyCycle(&PWM_R, *percDutyR);
+
+				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyR);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_R = 0;
+
+			}
+			else{
+				updateDutyCycle(&PWM_R, *percDutyR);
+
+				counter_R = 0;
+
+			}
+
+			// Control del motor izquierdo
+			if(counter_L < counts){
+
+				*percDutyL = *percDutyL+deltaDuty;
+				updateDutyCycle(&PWM_L, *percDutyL);
+
+				sprintf(bufferMsg,"Aum. duty izq.: %.2f \n",*percDutyL);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_L = 0;
+
+			}
+			else if(counter_L > counts){
+
+				*percDutyL = *percDutyL-deltaDuty;
+				updateDutyCycle(&PWM_L, *percDutyL);
+
+				sprintf(bufferMsg,"Dism. duty izq.: %.2f \n",*percDutyL);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+
+				counter_L = 0;
+
+			}
+			else{
+				updateDutyCycle(&PWM_L, *percDutyL);
+
+				counter_L = 0;
+
+			}
+		}
+
+		flagTimer = 0;
+
+	} // Fin del while
+
+}
+
+
+// Función para mover hacia adelante
+
+void forwardMove(float percDutyL, float percDutyR){
+
+	stopPwmSignal(&PWM_R);
+	stopPwmSignal(&PWM_L);
+
+	// Encendemos el puente H
+	gpio_WritePin(&GPIO_Enb_R, RESET);	// Prende motor derecho
+	gpio_WritePin(&GPIO_Enb_L, RESET);	// Apaga motor izquierdo
+
+	// Seteamos la dirección del motor
+	gpio_WritePin(&GPIO_Dir_R, SET);
+	gpio_WritePin(&GPIO_Dir_L, RESET);
+
+
+	PWM_R.config.polarity	= PWM_POLARITY_INVERSE;
+	pwm_Config(&PWM_R);
+	selectPolarity(&PWM_R);
+
+
+	PWM_L.config.polarity	= PWM_POLARITY_DIRECT;
+	pwm_Config(&PWM_L);
+	selectPolarity(&PWM_L);
+
+	updateDutyCycle(&PWM_R,percDutyR);
+	updateDutyCycle(&PWM_L,percDutyL);
+
+	// Encendemos el PWM para mover el motor derecho
+	startPwmSignal(&PWM_R);
+	startPwmSignal(&PWM_L);
+
+}
+
+/*
+ * Función para mover el robot hacia atrás
+ */
+void backwardMove(float percDutyL, float percDutyR){
+
+	stopPwmSignal(&PWM_R);
+	stopPwmSignal(&PWM_L);
+
+	// Encendemos el puente H
+	gpio_WritePin(&GPIO_Enb_R, RESET);	// Prende motor derecho
+	gpio_WritePin(&GPIO_Enb_L, RESET);	// Apaga motor izquierdo
+
+	// Seteamos la dirección del motor
+	gpio_WritePin(&GPIO_Dir_R, RESET);
+	gpio_WritePin(&GPIO_Dir_L, SET);
+
+
+	PWM_R.config.polarity	= PWM_POLARITY_DIRECT;
+	pwm_Config(&PWM_R);
+	selectPolarity(&PWM_R);
+
+
+	PWM_L.config.polarity	= PWM_POLARITY_INVERSE;
+	pwm_Config(&PWM_L);
+	selectPolarity(&PWM_L);
+
+	updateDutyCycle(&PWM_R,percDutyR);
+	updateDutyCycle(&PWM_L,percDutyL);
+
+	// Encendemos el PWM para mover el motor derecho
+	startPwmSignal(&PWM_R);
+	startPwmSignal(&PWM_L);
+
+}
+
+
+/*
+ * Funcipon para apagar el sistema
+ */
+void turnOff(void){
+
+	// Apaga el puente H para los motores
+	gpio_WritePin(&GPIO_Enb_R, SET);
+	gpio_WritePin(&GPIO_Enb_L, SET);
+
+	// Apaga los PWM
+	stopPwmSignal(&PWM_R);
+	stopPwmSignal(&PWM_L);
+
+}
+
+
+/*
+ * Funcipon para encender el sistema
+ */
+void turnOn(void){
+
+	// Enciente el puente H de los motores
+	gpio_WritePin(&GPIO_Enb_R, RESET);
+	gpio_WritePin(&GPIO_Enb_L, RESET);
+
+	// Enciente los PWM
+	startPwmSignal(&PWM_R);
+	startPwmSignal(&PWM_L);
+
+}
+
+
+/*
+ * Función para el PID
+ */
+void PID(uint16_t target, uint16_t measure){
+
+
+	while(1){
+
+		// Se calcula la diferencia de tiempo
+		deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
+		prevTime = currTime;					// Actualizamos la variable del tiempo
+
+		// Se calcula el error de medida
+		deltaError = target - measure;			// Diferencia entre el valor deseado y el medido en la actual iteración
+
+		// Se calcula la parte Derivativa del error
+		devError = (deltaError - prevError) / deltaTime;
+
+		// Se calcula la parte Integral del error
+		integralError = integralError + (deltaError*deltaTime);
+
+		/* La señal de control de PID, que representa la variable que modifica el actuador del sistema,
+		 * en este caso el PWM para los motores */
+		u_PID = kp*deltaError + ki*integralError + kd*devError;
+
+		// Realizamos el ajuste en el motor
+
+		/*
+		 * PASARLO A VALOR ASBOLUTO (u_PID)
+		 */
+		if(u_PID > 100){
+			u_PID = 100;
+		}
+		updateDutyCycle(ptrPwmHandler, PWM + u_PID);
+
+	}
+
+}
+
+
 /* Callback de Timer 2 para el Blinky */
 void Timer2_Callback(void){
+	counterPeriodMicros++;
+
+
+}
+
+/* Callback de Timer 3 para el Blinky */
+void Timer3_Callback(void){
 	gpio_TooglePin(&stateLed);
 	gpio_TooglePin(&stateLedBoard);
-	counterPeriod++;
-
-	// La vandera se levanta cada 500 ms
+	counterPeriodBlinky++;
+	// La bandera se levanta cada 500 ms
 	flagTimer = 1;
 }
 
