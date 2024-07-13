@@ -67,8 +67,8 @@ all: main-build
 main-build: Base_FreeRTOS.elf secondary-outputs
 
 # Tool invocations
-Base_FreeRTOS.elf Base_FreeRTOS.map: $(OBJS) $(USER_OBJS) /home/sebas/Repositories/GitHub/Robotica_2024_01/Base_FreeRTOS/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Base_FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/sebas/Repositories/GitHub/Robotica_2024_01/Base_FreeRTOS/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Base_FreeRTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Base_FreeRTOS.elf Base_FreeRTOS.map: $(OBJS) $(USER_OBJS) /home/aristizabal/Documents/Repositories/Robotica_2024_01/Base_FreeRTOS/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Base_FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/aristizabal/Documents/Repositories/Robotica_2024_01/Base_FreeRTOS/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Base_FreeRTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

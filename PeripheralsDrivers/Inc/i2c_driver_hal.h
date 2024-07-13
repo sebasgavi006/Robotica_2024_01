@@ -25,7 +25,9 @@ enum
 {
 	MAIN_CLOCK_4_MHz_FOR_I2C	= 4,
 	MAIN_CLOCK_16_MHz_FOR_I2C	= 16,
-	MAIN_CLOCK_20_MHz_FOR_I2C	= 20
+	MAIN_CLOCK_20_MHz_FOR_I2C	= 20,
+	MAIN_CLOCK_80_MHz_FOR_I2C	= 80,
+	MAIN_CLOCK_100_MHz_FOR_I2C	= 100
 
 };
 
@@ -41,9 +43,15 @@ enum
 /* Velocidades del periférico según el modo de opercación */
 enum
 {
-	I2C_MODE_SM_SPEED_100KHz	= 80,
-	I2C_MODE_SM_SPEED_400KHz	= 14
+	I2C_MODE_SM_SPEED_100KHz_16MHz	=	80,
+	I2C_MODE_FM_SPEED_400KHz_16MHz	=	14,
+	I2C_MODE_SM_SPEED_100KHz_80MHz	=	400,
+	I2C_MODE_FM_SPEED_400KHz_80MHz	=	67,
+	I2C_MODE_SM_SPEED_100KHz_100MHz	= 500,
+	I2C_MODE_FM_SPEED_400KHz_100MHz	= 83
 };
+
+
 
 
 /* Valores para el máximo tiempo del flanco de subida según
@@ -51,8 +59,12 @@ enum
  */
 enum
 {
-	I2C_MAX_RISE_TIME_SM	= 17,
-	I2C_MAX_RISE_TIME_FM	= 5
+	I2C_MAX_RISE_TIME_SM_16MHZ		= 17,
+	I2C_MAX_RISE_TIME_FM_16MHz		= 6,
+	I2C_MAX_RISE_TIME_SM_80MHZ		= 81,
+	I2C_MAX_RISE_TIME_FM_80MHz		= 25,
+	I2C_MAX_RISE_TIME_SM_100MHZ		= 101,
+	I2C_MAX_RISE_TIME_FM_100MHz		= 31
 };
 
 
@@ -63,6 +75,11 @@ typedef struct
 	uint8_t			slaveAddress;
 	uint8_t			modeI2C;
 	uint8_t			dataI2C;
+	uint8_t			mainClock;
+	uint8_t 		modeI2C_SM;
+	uint16_t			modeI2C_FM;
+	uint8_t 		maxI2C_SM;
+	uint8_t			maxI2C_FM;
 } I2C_Handler_t;
 
 
@@ -80,7 +97,9 @@ void i2c_SendNoAck(I2C_Handler_t *ptrHandlerI2C);
 
 /* Funciones públicas de lectura y escritura mediante I2C */
 uint8_t i2c_ReadSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead);
+void i2c_ReadRegisters(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead,uint8_t numberByte, uint8_t* data);
 void i2c_WriteSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, uint8_t newValue);
+
 
 
 #endif /* I2C_DRIVER_HAL_H_ */

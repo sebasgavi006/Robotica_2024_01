@@ -6,6 +6,13 @@
  */
 
 #ifndef MPU6050_DRIVER_H_
+
+#include <stdint.h>
+#include "i2c_driver_hal.h"
+#include "stm32f4xx.h"
+
+
+
 #define MPU6050_DRIVER_H_
 
 #define PWR_MGMT_1                    0x6b
@@ -13,7 +20,7 @@
 
 
 
-#define MPU6050_ADDRESS               0x68
+#define MPU6050_ADDRESS               0x69
 #define MPU6050_ACCEL_CONFIG_REG      0x1C
 #define MPU6050_GYRO_CONFIG_REG       0x1B
 #define MPU6050_ACCEL_XOUT_H_REG      0x3B
@@ -57,30 +64,43 @@ enum {
   MPU6050_BAND_5_HZ,   ///< 5 Hz
 };
 
+enum {
+  byte_1 = 1,  ///< +/- 250 deg/s (default value)
+  byte_2 = 2,  ///< +/- 500 deg/s
+  byte_3 = 3, ///< +/- 1000 deg/s
+  byte_4 = 4, ///< +/- 2000 deg/s
+  byte_5 = 5,
+  byte_6 = 6
+};
+
+
+enum {
+  dataTypeAccel,  ///< +/- 250 deg/s (default value)
+  dataTypeGyro,  ///< +/- 500 deg/s
+  dataTypeTemp ///< +/- 1000 deg/s
+};
 
 void begin();
 void calibration(float* rateCalibrationArray);
 void readAccelData(float* accelData);
 void readGyroData(float* gyroData);
 void readTempData(float* tempData);
-void calculateAngle(float* anglesData,  float* accelData);
+float calculateAngle(float* anglesData,  float* accelData);
 
 
 //accel_range_t getAccelRange(void);
-void setAccelRange(I2C_Handler_t ptrHandlerI2C, uint16_t newRange);
+void setAccelRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
 //gyro_range_t getGyroRange(void);
-void setGyroRange(I2C_Handler_t ptrHandlerI2C, uint16_t newRange);
+void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
 
 
 void reset(void);
 
-
-void rawGyroData(int16_t* gyroData);
-void rawAccelData(int16_t* gyroData);
+void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType);
+void readData(uint8_t* rawArray ,float* outData, uint8_t dataType, uint8_t sensorCfg);
 
 void readRegisters(uint8_t reg, uint8_t count,uint8_t* data); //debemos crear la funcion de multiples registros en I2C
 
-void calculateAngle(float* anglesData, float* accelData);
 
 
 

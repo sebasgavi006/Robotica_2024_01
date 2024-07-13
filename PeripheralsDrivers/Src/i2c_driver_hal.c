@@ -41,8 +41,18 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
 	 * utilizada por el periférico para generar la señal de reloj para el
 	 * bus I2C
 	 */
-	ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; //Borramos la configuración prestablecida
-	ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_16_MHz_FOR_I2C << I2C_CR2_FREQ_Pos); // Ponemos la frecuencia del CPU como la que usará el periférico
+
+	if(ptrHandlerI2C->mainClock < 50){
+		ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; // Borramos la configuración previa
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (ptrHandlerI2C->mainClock << I2C_CR2_FREQ_Pos);
+	}
+	else{
+		ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; // Borramos la configuración previa
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (50 << I2C_CR2_FREQ_Pos);
+	}
+
+	//ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; //Borramos la configuración prestablecida
+	//ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_16_MHz_FOR_I2C << I2C_CR2_FREQ_Pos); // Ponemos la frecuencia del CPU como la que usará el periférico
 
 	/* 4. Configuramos el modo I2C en el que el sistema funciona.
 	 * En esta configuración se incluye también la velocidad del reloj y el tiempo
@@ -63,20 +73,20 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
 		ptrHandlerI2C->ptrI2Cx->CCR &= ~I2C_CCR_FS;
 
 		// Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_100KHz << I2C_CCR_CCR_Pos);
+		ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_SM << I2C_CCR_CCR_Pos);
 
 		// Configuramos el registro que controla el tiempo T-Rise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_SM;
+		ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_SM;
 	}
 	else{
 		// Estamos en el modo "Fast" (SM Mode)
 		ptrHandlerI2C->ptrI2Cx->CCR |= I2C_CCR_FS;
 
 		// Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_400KHz << I2C_CCR_CCR_Pos);
+		ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_FM << I2C_CCR_CCR_Pos);
 
 		// Configuramos el registro que controla el tiempo T-Rise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_FM;
+		ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_FM;
 	}
 
 	/* 5. Activamos el módulo I2C */
@@ -273,6 +283,14 @@ uint8_t i2c_ReadSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead){
 	return auxRead;
 
 } // Fin de i2c_ReadSingleRegister
+
+
+void i2c_ReadRegisters(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead,uint8_t numberByte, uint8_t* data){
+
+	for (uint8_t i = 0 ; i < numberByte ; i++){
+		data[i] = i2c_ReadSingleRegister(ptrHandlerI2C, regToRead + i);
+	}
+}
 
 
 /*
