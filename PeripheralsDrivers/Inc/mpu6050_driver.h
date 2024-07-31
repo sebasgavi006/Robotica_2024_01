@@ -19,8 +19,8 @@
 #define CONFIG_REG                    0x1A
 
 
-
-#define MPU6050_ADDRESS               0x69
+#define WHO_AM_I					  0x75
+#define MPU6050_ADDRESS               0x68
 #define MPU6050_ACCEL_CONFIG_REG      0x1C
 #define MPU6050_GYRO_CONFIG_REG       0x1B
 #define MPU6050_ACCEL_XOUT_H_REG      0x3B
@@ -80,12 +80,13 @@ enum {
   dataTypeTemp ///< +/- 1000 deg/s
 };
 
-void begin();
+void beginIMU(I2C_Handler_t* ptrHandlerI2C);
 void calibration(float* rateCalibrationArray);
 void readAccelData(float* accelData);
 void readGyroData(float* gyroData);
 void readTempData(float* tempData);
 float calculateAngle(float* anglesData,  float* accelData);
+uint8_t who_am_i(I2C_Handler_t* ptrHandlerI2C);
 
 
 //accel_range_t getAccelRange(void);

@@ -10,7 +10,20 @@
 #include "math.h"
 
 
-void begin(I2C_Handler_t* ptrHandlerI2C){
+uint8_t who_am_i(I2C_Handler_t* ptrHandlerI2C){
+	uint8_t I2C_Buffer	= 0;
+
+	ptrHandlerI2C->slaveAddress = MPU6050_ADDRESS;
+
+	i2c_Config(ptrHandlerI2C);
+
+	i2c_ReadSingleRegister(ptrHandlerI2C, WHO_AM_I);
+
+	return I2C_Buffer;
+}
+
+
+void beginIMU(I2C_Handler_t* ptrHandlerI2C){
 	i2c_WriteSingleRegister(ptrHandlerI2C, PWR_MGMT_1, 0x0);
 }
 
