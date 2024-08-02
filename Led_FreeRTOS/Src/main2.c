@@ -137,10 +137,11 @@ void vTask_Blink_Led(void * pvParameters) {
 
 		// Si se recibe la notificación, se hace el blinky
 		if(ctrl_led){
-			change_state = !change_state;
+			SEGGER_SYSVIEW_PrintfTarget("Blinky");
 			gpio_TooglePin(&led_state);
 		}
 		else{
+			SEGGER_SYSVIEW_PrintfTarget("Stop");
 			gpio_WritePin(&led_state, RESET);
 		}
 

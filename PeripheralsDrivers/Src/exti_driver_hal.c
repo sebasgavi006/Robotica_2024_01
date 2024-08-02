@@ -1107,6 +1107,12 @@ static void exti_config_interrupt(EXTI_Config_t *extiConfig){
 }
 
 
+void exti_config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t extiPriority){
+
+
+}
+
+
 /* Definición de los callbacks de las interrupciones de los EXTI, para que además puedan ser sobreescritos */
 __attribute__ ((weak)) void callback_ExtInt0(void){
 	__NOP();

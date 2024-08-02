@@ -38,10 +38,12 @@ typedef struct
 {
 	GPIO_Handler_t *pGPIOHandler;	// Handler del pin GPIO que lanzara la interrupción
 	uint8_t			edgeType;		// Se selecciona si se desea un tipo de flanco subiendo o bajando
+	uint8_t			priority;
 }EXTI_Config_t;
 
 /* Se definen las funciones públicas del Driver del EXTI */
 void exti_Config(EXTI_Config_t *extiConfig);
+void exti_config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t extiPriority);
 void callback_ExtInt0(void);
 void callback_ExtInt1(void);
 void callback_ExtInt2(void);
