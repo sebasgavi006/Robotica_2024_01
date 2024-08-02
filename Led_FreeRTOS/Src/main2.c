@@ -19,9 +19,12 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+#include "timers.h"
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "gpio_driver_hal.h"
 #include "pll_driver_hal.h"
@@ -50,8 +53,13 @@ void initSystem(void);
 
 /*	FUNCION QUE INICIALIZA EL USART 2 PARA COMUNICAR CON SYSTEM VIEW*/
 extern void SEGGER_UART_init(uint32_t);
+extern void vTask_Menu(void *pvParameters);
+extern void vTask_Print(void *pvParameters);
+extern void vTask_Commands(void *pvParameters);
 
-
+TaskHandle_t xHandlerTask_MENU = NULL;
+TaskHandle_t xHandlerTask_PRINT = NULL;
+TaskHandle_t xHandlerTask_COMMANDS = NULL;
 /*
  * FUNCIÓN PRINCIPAL DEL PROGRAMA
  */
@@ -69,14 +77,14 @@ int main(void)
 
 
 	/*Necesario para el SEGGER*/
-	vInitPrioGroupValue();
+//	vInitPrioGroupValue();
 
 	/* Configuramos le puerto pra trabaar ocn SEGGER*/
-	SEGGER_UART_init(500E3);
+//	SEGGER_UART_init(500E3);
 
 
 	/* Primero configuramos */
-	SEGGER_SYSVIEW_Conf();
+//	SEGGER_SYSVIEW_Conf();
 	/* Despues activamos el sistema */
 
 	/*removemos al trabajar con el USART ya que el archivo hace esa configuración */
@@ -84,106 +92,46 @@ int main(void)
 
 
     xReturned = xTaskCreate(
-    				vTask_Blink_Led,       		/* Function that implements the task. */
-                    "Task-Blinky",        		/* Text name for the task. */
+    				vTask_Print,       		/* Function that implements the task. */
+                    "Task-Print",        		/* Text name for the task. */
                     STACK_SIZE,      			/* Stack size in words, not bytes. */
                     ("Led parpadeando"),    	/* Parameter passed into the task. */
                     2,							/* Priority at which the task is created. */
-                    &xHandlerTask_Led );	/* Used to pass out the created task's handle. */
+                    &xHandlerTask_MENU );	/* Used to pass out the created task's handle. */
 
     configASSERT(xReturned == pdPASS);
 
 
     xReturned = xTaskCreate(
-                    vTaskTwo,       			/* Function that implements the task. */
+                    vTask_Commands,       			/* Function that implements the task. */
                     "Task-2",          			/* Text name for the task. */
                     STACK_SIZE,      			/* Stack size in words, not bytes. */
                     ("Hola mundo desde la Tarea-2"),	/* Parameter passed into the task. */
                     2,							/* Priority at which the task is created. */
-                    &xHandlerTask2 );     		/* Used to pass out the created task's handle. */
+                    &xHandlerTask_PRINT );     		/* Used to pass out the created task's handle. */
+
+    configASSERT(xReturned == pdPASS);
+
+
+    xReturned = xTaskCreate(
+                    vTask_Menu,       			/* Function that implements the task. */
+                    "Task-2",          			/* Text name for the task. */
+                    STACK_SIZE,      			/* Stack size in words, not bytes. */
+                    ("Hola mundo desde la Tarea-2"),	/* Parameter passed into the task. */
+                    2,							/* Priority at which the task is created. */
+                    &xHandlerTask_COMMANDS );     		/* Used to pass out the created task's handle. */
 
     configASSERT(xReturned == pdPASS);
 
 
 
-    SEGGER_SYSVIEW_PrintfTarget("Starting the scheduler...");
+    //SEGGER_SYSVIEW_PrintfTarget("Starting the scheduler...");
     //STart the created tasks running
     vTaskStartScheduler();
 
     /* Loop forever */
 	while(1){
 		// Si llegamos aqui algo salio mal
-	}
-}
-
-
-/*
- * Funciones locales del main
- */
-
-//Funcion que gobierna la tarea 1
-void vTask_Blink_Led(void * pvParameters) {
-
-	BaseType_t notify_status = {0};
-	uint8_t ctrl_led = 0;
-
-	/*
-	 * Todas las tareas contienen un loop infinito.
-	 * Si la ejecución se sale del loop, algo salió mal.
-	 */
-	while(1){
-		//printf("%s\n",(char*)pvParameters);
-
-
-		// Si se recibe la notificación, se hace el blinky
-		if(ctrl_led){
-			SEGGER_SYSVIEW_PrintfTarget("Blinky");
-			gpio_TooglePin(&led_state);
-		}
-		else{
-			SEGGER_SYSVIEW_PrintfTarget("Stop");
-			gpio_WritePin(&led_state, RESET);
-		}
-
-		notify_status = xTaskNotifyWait(0, 0, NULL, pdMS_TO_TICKS(250));
-
-		if (notify_status == pdTRUE){
-			//Para desactivar las interrupciones por un peuqueño instante
-			portENTER_CRITICAL();
-			ctrl_led = !ctrl_led;
-			// las volvemos a activar
-			portEXIT_CRITICAL();
-		}
-		//vTaskDelay( pdMS_TO_TICKS(250));
-		//TaskYIELD();
-	}
-}
-
-
-//Funcion que gobierna la tarea 2
-void vTaskTwo(void * pvParameters) {
-
-	// Variables locales
-	uint8_t button_state = 0;
-	uint8_t prev_button_state = 0;
-
-
-	while(1){
-
-		//printf("%s\n",(char*)pvParameters);
-		button_state = gpio_ReadPin(&user_button);
-
-		// Se entra en todo el ciclo cuando se cumple que el botón se presiona y se deja de presionar
-		if(button_state){
-			if(!prev_button_state){
-
-				// Esta función envía la notificación al Handler de la tarea que maneja del Blinky
-				xTaskNotify(xHandlerTask_Blinky_Led, 0, eNoAction);
-			}
-		}
-		prev_button_state = button_state;
-
-		vTaskDelay(pdMS_TO_TICKS(10));
 	}
 }
 
