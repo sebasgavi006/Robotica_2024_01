@@ -1,5 +1,4 @@
- Software_Toolchain/
- #settings
+#settings
 .settings/
 
 #metadata
@@ -31,7 +30,7 @@ release
 *.la
 *.lo
 
-# Shared objects (inc. Windows DLLs)
+# Shared objects
 *.dll
 *.so
 *.so.*
@@ -52,8 +51,8 @@ release
 *.idb
 *.pdb
 
-#Modificaciones de tallerV
-#folders
+# Modificaciones de tallerV
+# folders
 .metadata/
 .settings/
 Debug/
@@ -61,3 +60,4 @@ Release/
 *.launch
 # other
 .cproject
+
