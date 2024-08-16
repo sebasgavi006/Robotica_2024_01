@@ -1113,7 +1113,7 @@ void exti_Config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t newPriority
 		// Desactivamos las interrupciones
 		__disable_irq();
 
-		switch (extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber) {
+		switch (ptrExtiHandler->pGPIOHandler->pinConfig.GPIO_PinNumber) {
 
 		case 0: {
 			__NVIC_SetPriority(EXTI0_IRQn, newPriority);

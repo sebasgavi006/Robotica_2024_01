@@ -1187,6 +1187,19 @@ static void adc_config_interrupt(ADC_Config_t *adcConfig) {
 
 }	// Fin de la función adc_config_interrupt
 
+void adc_Config_Int_Priority(ADC_Config_t *ptrADCHandler,uint8_t newPriority){
+
+	// Desactivamos las interrupciones globales
+	__disable_irq();
+
+	// Asignamos el nuevo valor de prioridad de la sinterrupciones del ADC
+	__NVIC_SetPriority(ADC_IRQn, newPriority);
+	// Activamos nuevamente las interrupciones
+	__NVIC_EnableIRQ(ADC_IRQn);
+
+}
+
+
 
 /*
  * Controla la activación y desactivación del módulo ADC desde el

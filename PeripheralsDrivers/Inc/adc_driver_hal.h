@@ -101,6 +101,20 @@ enum{
 	EXT_TRIGGER_EXTI11		= 0b1111,
 };
 
+enum
+{
+	e_ADC_PRIORITY_6 = 6,
+	e_ADC_PRIORITY_7,
+	e_ADC_PRIORITY_8,
+	e_ADC_PRIORITY_9,
+	e_ADC_PRIORITY_10,
+	e_ADC_PRIORITY_11,
+	e_ADC_PRIORITY_12,
+	e_ADC_PRIORITY_13,
+	e_ADC_PRIORITY_14,
+	e_ADC_PRIORITY_15
+};
+
 
 /*
  * ADC Config definition
@@ -125,6 +139,7 @@ typedef struct{
 /* Header definitions for the public functions of adc_driver_hal */
 void adc_ConfigSingleChannel(ADC_Config_t *adcConfig);
 void adc_ConfigAnalogPin(uint8_t adcChannel);
+void adc_Config_Int_Priority(ADC_Config_t *ptrADCHandler,uint8_t newPriority);
 void adc_CompleteCallback(void);
 void adc_StartSingleConv(void);
 void adc_ScanMode(uint8_t state);
