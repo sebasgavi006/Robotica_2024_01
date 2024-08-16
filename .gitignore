@@ -51,13 +51,5 @@ release
 *.idb
 *.pdb
 
-# Modificaciones de tallerV
-# folders
-.metadata/
-.settings/
-Debug/
-Release/
-*.launch
-# other
-.cproject
+
 
