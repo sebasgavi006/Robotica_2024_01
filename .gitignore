@@ -30,7 +30,7 @@ release
 *.la
 *.lo
 
-# Shared objects (inc. Windows DLLs)
+# Shared objects
 *.dll
 *.so
 *.so.*
@@ -51,8 +51,8 @@ release
 *.idb
 *.pdb
 
-#Modificaciones de tallerV
-#folders
+# Modificaciones de tallerV
+# folders
 .metadata/
 .settings/
 Debug/
