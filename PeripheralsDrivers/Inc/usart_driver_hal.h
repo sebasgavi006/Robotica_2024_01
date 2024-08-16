@@ -119,7 +119,7 @@ typedef struct
 
 /* Definicion de los prototipos para las funciones del USART */
 void usart_Config(USART_Handler_t *ptrUsartHandler);
-static void usart_config_Int_Priority(USART_Handler_t *ptrUsartHandler,uint8_t newPriority);
+void usart_Config_Int_Priority(USART_Handler_t *ptrUsartHandler,uint8_t newPriority);
 int  usart_WriteChar(USART_Handler_t *ptrUsartHandler, char dataToSend );
 void usart_WriteMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend );
 uint8_t usart1_getRxData(void);

@@ -19,7 +19,6 @@ static void usart_config_stopbits(USART_Handler_t *ptrUsartHandler);
 static void usart_config_baudrate(USART_Handler_t *ptrUsartHandler);
 static void usart_config_mode(USART_Handler_t *ptrUsartHandler);
 static void usart_config_interrupt(USART_Handler_t *ptrUsartHandler);
-static void usart_config_Int_Priority(USART_Handler_t *ptrUsartHandler,uint8_t newPriority);
 static void usart_enable_peripheral(USART_Handler_t *ptrUsartHandler);
 
 
@@ -352,7 +351,7 @@ static void usart_config_interrupt(USART_Handler_t *ptrUsartHandler){
 
 
 
-static void usart_config_Int_Priority(USART_Handler_t *ptrUsartHandler,uint8_t newPriority){
+void usart_Config_Int_Priority(USART_Handler_t *ptrUsartHandler, uint8_t newPriority){
 	/* Debemos matricular la interrupcion en el NVIC*/
 	/* Hacerlo para cada una de las opciones que tengamos*/
 

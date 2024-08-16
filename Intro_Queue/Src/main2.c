@@ -219,7 +219,7 @@ void initSystem(void){
 	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
 	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
 	usart_Config(&usart1Comm);
-	//usart_config_Int_Priority(&usart1Comm, e_USART_PRIORITY_6);
+	usart_Config_Int_Priority(&usart1Comm, e_USART_PRIORITY_6);
 }
 
 
