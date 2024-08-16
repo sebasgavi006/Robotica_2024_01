@@ -1107,10 +1107,75 @@ static void exti_config_interrupt(EXTI_Config_t *extiConfig){
 }
 
 
-void exti_config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t extiPriority){
+void exti_Config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t newPriority){
+		/* Debemos matricular la interrupcion en el NVIC*/
 
+		// Desactivamos las interrupciones
+		__disable_irq();
 
+		switch (extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber) {
+
+		case 0: {
+			__NVIC_SetPriority(EXTI0_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI0_IRQn);
+			break;
+		}
+
+		case 1: {
+			__NVIC_SetPriority(EXTI1_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI1_IRQn);
+			break;
+		}
+
+		case 2: {
+			__NVIC_SetPriority(EXTI2_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI2_IRQn);
+			break;
+		}
+
+		case 3: {
+			__NVIC_SetPriority(EXTI3_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI3_IRQn);
+			break;
+		}
+
+		case 4: {
+			__NVIC_SetPriority(EXTI4_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI4_IRQn);
+			break;
+		}
+
+		// Los canales 5-9 y 10-15 tienen respectivamente una misma posición en el registro del NVIC
+
+		// Usamos la multiopción del switch para escribir menos código
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9: {
+			__NVIC_SetPriority(EXTI9_5_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI9_5_IRQn);
+			break;
+		}
+
+		// Usamos la multiopción del switch para escribir menos código
+		case 10:
+		case 11:
+		case 12:
+		case 13:
+		case 14:
+		case 15: {
+			__NVIC_SetPriority(EXTI15_10_IRQn, newPriority);
+			__NVIC_EnableIRQ(EXTI15_10_IRQn);
+			break;
+		}
+
+		default: {
+			break;
+		}
+		}
 }
+
 
 
 /* Definición de los callbacks de las interrupciones de los EXTI, para que además puedan ser sobreescritos */

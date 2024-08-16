@@ -43,7 +43,7 @@ typedef struct
 
 /* Se definen las funciones públicas del Driver del EXTI */
 void exti_Config(EXTI_Config_t *extiConfig);
-void exti_config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t extiPriority);
+void exti_Config_Int_Priority(EXTI_Config_t *ptrExtiHandler, uint8_t newPriority);
 void callback_ExtInt0(void);
 void callback_ExtInt1(void);
 void callback_ExtInt2(void);
