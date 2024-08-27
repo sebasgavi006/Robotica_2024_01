@@ -73,10 +73,13 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
 		ptrHandlerI2C->ptrI2Cx->CCR &= ~I2C_CCR_FS;
 
 		// Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_SM << I2C_CCR_CCR_Pos);
+		//ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_SM << I2C_CCR_CCR_Pos);
+		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_100KHz_16MHz << I2C_CCR_CCR_Pos);
 
 		// Configuramos el registro que controla el tiempo T-Rise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_SM;
+		//ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_SM;
+
+		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_SM_16MHZ;
 	}
 	else{
 		// Estamos en el modo "Fast" (SM Mode)
@@ -101,13 +104,15 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
  */
 void i2c_StartTransaction(I2C_Handler_t *ptrHandlerI2C){
 
+	uint8_t auxData = 0;
+	(void)auxData;
 	/* Solución a aparente problema al enciar al dirección del esclavo */
-	ptrHandlerI2C->ptrI2Cx->CR1 &= ~I2C_CR1_STOP;
+//	ptrHandlerI2C->ptrI2Cx->CR1 &= ~I2C_CR1_STOP;
 
 	/* 1. Verificamos que la línea no está ocupada - bit "Busy" del reg CR2 */
-	while(ptrHandlerI2C->ptrI2Cx->SR2 & I2C_SR2_BUSY){	// El ciclo se mantiene hasta que esté desocupada
-		__NOP();
-	}
+//	while(ptrHandlerI2C->ptrI2Cx->SR2 & I2C_SR2_BUSY){	// El ciclo se mantiene hasta que esté desocupada
+//		__NOP();
+//	}
 
 	/* 2. Generamos la señal "start" */
 	ptrHandlerI2C->ptrI2Cx->CR1 |= I2C_CR1_START;
@@ -118,6 +123,8 @@ void i2c_StartTransaction(I2C_Handler_t *ptrHandlerI2C){
 	while(!(ptrHandlerI2C->ptrI2Cx->SR1 & I2C_SR1_SB)){
 		__NOP();
 	}
+
+	auxData = ptrHandlerI2C->ptrI2Cx->SR1;
 
 } // Fin función i2c_StartTransaction
 
@@ -223,7 +230,8 @@ void i2c_SendDataByte(I2C_Handler_t *ptrHandlerI2C, uint8_t dataToWrite){
 	ptrHandlerI2C->ptrI2Cx->DR = dataToWrite;
 
 	/* Esperamos hasta que el byte sea transmitido */
-	while(!(ptrHandlerI2C->ptrI2Cx->SR1 & I2C_SR1_BTF)){
+//	while(!(ptrHandlerI2C->ptrI2Cx->SR1 & I2C_SR1_BTF)){
+	while(!(ptrHandlerI2C->ptrI2Cx->SR1 & I2C_SR1_TXE)){
 		__NOP();
 	}
 }

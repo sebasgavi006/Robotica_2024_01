@@ -130,16 +130,17 @@ int main(void){
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 
+	/* Loop forever */
+	while (1) {
 
-	i2c_WriteSingleRegister(&imuHandler, 107, 0x0);
+		if (flagTimer) {
+			i2c_WriteSingleRegister(&imuHandler, 107, 0x0);
+			flagTimer = 0;
+		}
+
 //	begin(&imuHandler);
 //	setGyroRange(&imuHandler, MPU6050_RANGE_250_DEG);
 //	setAccelRange(&imuHandler, MPU6050_RANGE_2_G);
-
-
-
-	/* Loop forever */
-	while(1){
 
 	}
 	return 0;
@@ -171,7 +172,7 @@ void initSystem(void){
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky */
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 40E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 16000;	// Genera incrementos de 1 ms. El micro está a 100MHz
 	Tim_Blinky.TIMx_Config.TIMx_Period				= 500;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
@@ -233,9 +234,11 @@ void initSystem(void){
 	gpio_Config(&imuSCL);
 
 
-	imuHandler.slaveAddress = 105;
+	imuHandler.slaveAddress = 0b1101000; //105;
 	imuHandler.ptrI2Cx		= I2C3;
-	imuHandler.modeI2C		= I2C_MODE_FM;
+	imuHandler.modeI2C		= I2C_MODE_SM;
+	imuHandler.mainClock	= MAIN_CLOCK_16_MHz_FOR_I2C;
+	imuHandler.maxI2C_SM	= I2C_MODE_SM_SPEED_100KHz_16MHz;
 
 	i2c_Config(&imuHandler);
 
