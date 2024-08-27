@@ -15,43 +15,61 @@
  *
  ******************************************************************************
  */
-#include "stm32f4xx.h"
+#include "main.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
+#define STACK_SIZE 200
 
-#include <stdint.h>
-#include <stdio.h>
-
-#include "gpio_driver_hal.h"
-#include "pll_driver_hal.h"
-#include "exti_driver_hal.h"
-
-# define STACK_SIZE 200
 // definicion de variables del sistema
 uint32_t SystemCoreClock = 100E6;
 PLL_Config_t pllHandler = {0};
 
-/* Perifericos del sistema */
-GPIO_Handler_t led_state = {0};
-GPIO_Handler_t user_button = {0};
-EXTI_Config_t exti_btn_Handler = {0};
+//USART
+GPIO_Handler_t led_State_Handle		= {0};
+GPIO_Handler_t user_button_Handle	= {0};
 
-/* Declaramos algunas variables propias del FreeRTOS */
+USART_Handler_t commTerm_Handler	= {0};
+GPIO_Handler_t pinTX_Handle 		= {0};
+GPIO_Handler_t pinRX_Handle 		= {0};
+
+uint8_t usartData = 0;
+
+/* Handlers del FreeRTOS */
 BaseType_t xReturned;
-TaskHandle_t xHandlerTask_Led = NULL;
-TaskHandle_t xHandlerTask_Btn = NULL;
 
-void vTask_Blink_Led(void * pvParameters);
-void vTaskTwo(void * pvParameters);
+/* Handlers de las tareas */
+TaskHandle_t xHandleTask_Menu = NULL;
+TaskHandle_t xHandleTask_Print = NULL;
+TaskHandle_t xHandleTask_Commands = NULL;
+
+/* Headers del FreeRTOS */
+extern void vTask_Menu(void* pvParameters);
+extern void vTask_Print(void* pvParameters);
+extern void vTask_Commands(void* pvParameters);
+
+/* Handlers de las colas */
+QueueHandle_t xQueue_Print;
+QueueHandle_t xQueue_InputData;
+
+/* Timer para el led de estado */
+TimerHandle_t handle_led_timer;
+
+state_t next_state = sMainMenu;
 
 /*  Cabeceras de las funciones del programa */
 void initSystem(void);
 
 /*	FUNCION QUE INICIALIZA EL USART 2 PARA COMUNICAR CON SYSTEM VIEW*/
 extern void SEGGER_UART_init(uint32_t);
+extern void vTask_Menu(void *pvParameters);
+extern void vTask_Print(void *pvParameters);
+extern void vTask_Commands(void *pvParameters);
 
+TaskHandle_t xHandlerTask_MENU = NULL;
+TaskHandle_t xHandlerTask_PRINT = NULL;
+TaskHandle_t xHandlerTask_COMMANDS = NULL;
 
+QueueHandle_t	xQueue_Print;
+QueueHandle_t	xQueue_InputData;
 /*
  * FUNCIÓN PRINCIPAL DEL PROGRAMA
  */
@@ -69,44 +87,70 @@ int main(void)
 
 
 	/*Necesario para el SEGGER*/
-	vInitPrioGroupValue();
+//	vInitPrioGroupValue();
 
 	/* Configuramos le puerto pra trabaar ocn SEGGER*/
-	SEGGER_UART_init(500E3);
+//	SEGGER_UART_init(500E3);
 
 
 	/* Primero configuramos */
-	SEGGER_SYSVIEW_Conf();
+//	SEGGER_SYSVIEW_Conf();
 	/* Despues activamos el sistema */
 
 	/*removemos al trabajar con el USART ya que el archivo hace esa configuración */
 	//SEGGER_SYSVIEW_Start();
 
-
+	/* Creando la Tarea Menu */
     xReturned = xTaskCreate(
-    				vTask_Blink_Led,       		/* Function that implements the task. */
-                    "Task-Blinky",        		/* Text name for the task. */
+                    vTask_Menu,       			/* Function that implements the task. */
+                    "Task-Menu",          		/* Text name for the task. */
                     STACK_SIZE,      			/* Stack size in words, not bytes. */
-                    ("Led parpadeando"),    	/* Parameter passed into the task. */
+                    NULL,						/* Parameter passed into the task. */
                     2,							/* Priority at which the task is created. */
-                    &xHandlerTask_Led );	/* Used to pass out the created task's handle. */
+                    &xHandlerTask_MENU );     	/* Used to pass out the created task's handle. */
+    configASSERT(xReturned == pdPASS);
+
+    /* Creando la Tarea Print */
+    xReturned = xTaskCreate(
+    				vTask_Print,       		/* Function that implements the task. */
+                    "Task-Print",        		/* Text name for the task. */
+                    STACK_SIZE,      			/* Stack size in words, not bytes. */
+                    NULL,    	/* Parameter passed into the task. */
+                    2,							/* Priority at which the task is created. */
+                    &xHandlerTask_PRINT );	/* Used to pass out the created task's handle. */
+
+    configASSERT(xReturned == pdPASS);
+
+    /* Creando la Tarea Commands */
+    xReturned = xTaskCreate(
+                    vTask_Commands,       			/* Function that implements the task. */
+                    "Task-Commands",          			/* Text name for the task. */
+                    STACK_SIZE,      			/* Stack size in words, not bytes. */
+                    NULL,	/* Parameter passed into the task. */
+                    2,							/* Priority at which the task is created. */
+                    &xHandlerTask_COMMANDS );     		/* Used to pass out the created task's handle. */
 
     configASSERT(xReturned == pdPASS);
 
 
-    xReturned = xTaskCreate(
-                    vTaskTwo,       			/* Function that implements the task. */
-                    "Task-2",          			/* Text name for the task. */
-                    STACK_SIZE,      			/* Stack size in words, not bytes. */
-                    ("Hola mundo desde la Tarea-2"),	/* Parameter passed into the task. */
-                    2,							/* Priority at which the task is created. */
-                    &xHandlerTask2 );     		/* Used to pass out the created task's handle. */
 
-    configASSERT(xReturned == pdPASS);
+    /* Creando las dos Queue */
+    xQueue_InputData = xQueueCreate(10,sizeof(char));	//maneja caracteres individuales
+    configASSERT(xQueue_InputData !=NULL); 				//verificamos que se haya creado la queue
 
+    xQueue_Print = xQueueCreate(10,sizeof(size_t));		//manea caracteres individuales
+    configASSERT(xQueue_InputData !=NULL); 				//verificamos que se haya creado la queue
 
+    /* Creando el timer */
+    handle_led_timer = xTimerCreate("led_timer",
+    								pdMS_TO_TICKS(500),
+									pdTRUE,
+									(void* ) NULL,
+									*led_state_callback);
 
-    SEGGER_SYSVIEW_PrintfTarget("Starting the scheduler...");
+    xTimerStart(handle_led_timer, portMAX_DELAY);
+
+    //SEGGER_SYSVIEW_PrintfTarget("Starting the scheduler...");
     //STart the created tasks running
     vTaskStartScheduler();
 
@@ -117,77 +161,7 @@ int main(void)
 }
 
 
-/*
- * Funciones locales del main
- */
-
-//Funcion que gobierna la tarea 1
-void vTask_Blink_Led(void * pvParameters) {
-
-	BaseType_t notify_status = {0};
-	uint8_t ctrl_led = 0;
-
-	/*
-	 * Todas las tareas contienen un loop infinito.
-	 * Si la ejecución se sale del loop, algo salió mal.
-	 */
-	while(1){
-		//printf("%s\n",(char*)pvParameters);
-
-
-		// Si se recibe la notificación, se hace el blinky
-		if(ctrl_led){
-			change_state = !change_state;
-			gpio_TooglePin(&led_state);
-		}
-		else{
-			gpio_WritePin(&led_state, RESET);
-		}
-
-		notify_status = xTaskNotifyWait(0, 0, NULL, pdMS_TO_TICKS(250));
-
-		if (notify_status == pdTRUE){
-			//Para desactivar las interrupciones por un peuqueño instante
-			portENTER_CRITICAL();
-			ctrl_led = !ctrl_led;
-			// las volvemos a activar
-			portEXIT_CRITICAL();
-		}
-		//vTaskDelay( pdMS_TO_TICKS(250));
-		//TaskYIELD();
-	}
-}
-
-
-//Funcion que gobierna la tarea 2
-void vTaskTwo(void * pvParameters) {
-
-	// Variables locales
-	uint8_t button_state = 0;
-	uint8_t prev_button_state = 0;
-
-
-	while(1){
-
-		//printf("%s\n",(char*)pvParameters);
-		button_state = gpio_ReadPin(&user_button);
-
-		// Se entra en todo el ciclo cuando se cumple que el botón se presiona y se deja de presionar
-		if(button_state){
-			if(!prev_button_state){
-
-				// Esta función envía la notificación al Handler de la tarea que maneja del Blinky
-				xTaskNotify(xHandlerTask_Blinky_Led, 0, eNoAction);
-			}
-		}
-		prev_button_state = button_state;
-
-		vTaskDelay(pdMS_TO_TICKS(10));
-	}
-}
-
-
-// Funcion para inicializar el sistema+
+/* Funcion para inicializar el sistema*/
 void initSystem(void){
 
 
@@ -195,51 +169,87 @@ void initSystem(void){
 	RCC->CR &= ~(RCC_CR_HSITRIM); // Limpiamos el registro
 	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
 
-	// Configuramos el led de estado
-	led_state.pGPIOx 						= GPIOA;
-	led_state.pinConfig.GPIO_PinNumber		= PIN_5;
-	led_state.pinConfig.GPIO_PinMode 		= GPIO_MODE_OUT;
-	led_state.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_LOW;
-	led_state.pinConfig.GPIO_PinOutputType 	= GPIO_OTYPE_PUSHPULL;
-	led_state.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	/* Configuramos el led de estado */
+	led_State_Handle.pGPIOx 						= GPIOA;
+	led_State_Handle.pinConfig.GPIO_PinNumber		= PIN_5;
+	led_State_Handle.pinConfig.GPIO_PinMode 		= GPIO_MODE_OUT;
+	led_State_Handle.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_LOW;
+	led_State_Handle.pinConfig.GPIO_PinOutputType 	= GPIO_OTYPE_PUSHPULL;
+	led_State_Handle.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 
-	// Cargamos la configuracion del pin led_state
-	gpio_Config(&led_state);
+	// Cargamos la configuracion del pin led_State_Handle
+	gpio_Config(&led_State_Handle);
 
 	// Apagamos el led
-	gpio_WritePin(&led_state, RESET);
+	gpio_WritePin(&led_State_Handle, RESET);
 
+	/* Configuramos */
+	user_button_Handle.pGPIOx							= GPIOC;
+	user_button_Handle.pinConfig.GPIO_PinNumber			= PIN_13;
+	user_button_Handle.pinConfig.GPIO_PinMode			= GPIO_MODE_IN;
+	user_button_Handle.pinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	gpio_Config(&user_button_Handle);
 
-	// Configuramos el boton con EXTI
-	user_button.pGPIOx 							= GPIOC;
-	user_button.pinConfig.GPIO_PinNumber		= PIN_13;
-	user_button.pinConfig.GPIO_PinMode 			= GPIO_MODE_IN;
-	user_button.pinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
+	/* ==================================== Configurando los USART =============================================*/
+	pinTX_Handle.pGPIOx										= GPIOA;
+	pinTX_Handle.pinConfig.GPIO_PinNumber					= PIN_2;
+	pinTX_Handle.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
+	pinTX_Handle.pinConfig.GPIO_PinOutputSpeed				= GPIO_OSPEED_HIGH;
+	pinTX_Handle.pinConfig.GPIO_PinAltFunMode				= AF7;
+	gpio_Config(&pinTX_Handle);
 
-	// Cargamos la configuracion del pin led_state
-	gpio_Config(&user_button);
+	pinRX_Handle.pGPIOx										= GPIOA;
+	pinRX_Handle.pinConfig.GPIO_PinNumber					= PIN_3;
+	pinRX_Handle.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
+	pinRX_Handle.pinConfig.GPIO_PinAltFunMode				= AF7;
+	gpio_Config(&pinRX_Handle);
 
-	exti_btn_Handler.pGPIOHandler				= &user_button;
-	exti_btn_Handler.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
-	exti_btn_Handler.priority					= e_EXTI_PRIORITY_6;
-
-	//exti_config_Int_Priority(&exti_btn_Handler, e_EXTI_PRIORITY_6);
-	exti_Config(&exti_btn_Handler);
-
-
+	commTerm_Handler.ptrUSARTx									= USART2;
+	commTerm_Handler.USART_Config.baudrate						= USART_BAUDRATE_19200_100MHz;
+	commTerm_Handler.USART_Config.datasize						= USART_DATASIZE_8BIT;
+	commTerm_Handler.USART_Config.parity						= USART_PARITY_NONE;
+	commTerm_Handler.USART_Config.stopbits						= USART_STOPBIT_1;
+	commTerm_Handler.USART_Config.mode							= USART_MODE_RXTX;
+	commTerm_Handler.USART_Config.enableIntRX					= USART_RX_INTERRUPT_ENABLE;
+	commTerm_Handler.USART_Config.enableIntTX					= USART_TX_INTERRUPT_DISABLE;
+	usart_Config(&commTerm_Handler);
+	usart_Config_Int_Priority(&commTerm_Handler, e_USART_PRIORITY_6);
 }
 
+/*Interrupción debida al puerto serial */
+void usart2_RxCallback(void){
+	usartData = usart2_getRxData();
 
-void callback_ExtInt13(void){
-	BaseType_t pxHigherPriorityTaskWoken;
-	pxHigherPriorityTaskWoken = pdFALSE;
-	// Esta es una funcion para el SEGGER SYSVIEW reconozca la interrupción
-	traceISR_ENTER();
-	// Notificamos la funcion del LED
-	xTaskNotifyFromISR(xHandlerTask_Led,0,eNoAction,&pxHigherPriorityTaskWoken);
-	//portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
-	traceISR_EXIT();
+	BaseType_t xHigherPriorityTasWoken;
+	(void ) xHigherPriorityTasWoken;
+	/* No tenemos una tarea despierta al inicio del ISR */
+	xHigherPriorityTasWoken = pdFALSE;
 
+	/* Verificamos que la cola no se encuentra llena */
+	xReturned = xQueueIsQueueFullFromISR(xQueue_InputData);
+
+	// Si no es TRUE, entonces la cola tiene un espacio
+	if(xReturned != pdTRUE){
+		xQueueSendToBackFromISR(xQueue_InputData, (void*)&usartData, NULL);
+	}
+	else{
+		//Cola está LLENA
+		if(usartData == '#'){		// El # es el inidicador para un comando en una string
+			xQueueReceiveFromISR(xQueue_InputData, (void*)&usartData, NULL);
+			xQueueSendToBackFromISR(xQueue_InputData,(void*)&usartData, NULL);
+		}
+	}
+
+	/* Se verifica que el mensaje recibido sea un commando (identificado por un # al final del string) */
+	if(usartData == '#'){
+		/* Envía la notificación a la tarea Commands*/
+		xTaskNotifyFromISR(xHandleTask_Commands, 0, eNoAction, NULL);
+	}
+
+} // Fin Callback USART2
+
+/* Callback del Timer del led_State_Handle */
+void led_state_callback(TimerHandle_t xTimer){
+	gpio_TooglePin(&led_State_Handle);
 }
-
 

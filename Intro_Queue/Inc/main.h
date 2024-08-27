@@ -48,4 +48,14 @@ void vTask_Menu(void* pvParameters);
 void vTask_Print(void* pvParameters);
 void vTask_Commands(void* pvParameters);
 
+
+void led_state_callback(TimerHandle_t xTimer);
+
+extern QueueHandle_t xQueue_InputData;
+extern QueueHandle_t xQueue_Print;
+
+extern state_t next_state;
+
+extern USART_Handler_t commTerm_Handler;
+
 #endif /* MAIN_H_ */
