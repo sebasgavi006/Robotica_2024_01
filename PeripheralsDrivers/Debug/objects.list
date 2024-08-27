@@ -3,7 +3,6 @@
 "./Src/exti_driver_hal.o"
 "./Src/gpio_driver_hal.o"
 "./Src/i2c_driver_hal.o"
-"./Src/mpu6050_driver.o"
 "./Src/pll_driver_hal.o"
 "./Src/pwm_driver_hal.o"
 "./Src/systick_driver_hal.o"

@@ -80,7 +80,7 @@ enum {
   dataTypeTemp ///< +/- 1000 deg/s
 };
 
-void begin();
+void begin(I2C_Handler_t* ptrHandlerI2C);
 void calibration(float* rateCalibrationArray);
 void readAccelData(float* accelData);
 void readGyroData(float* gyroData);

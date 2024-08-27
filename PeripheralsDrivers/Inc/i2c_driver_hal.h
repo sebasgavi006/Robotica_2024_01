@@ -77,7 +77,7 @@ typedef struct
 	uint8_t			dataI2C;
 	uint8_t			mainClock;
 	uint8_t 		modeI2C_SM;
-	uint16_t			modeI2C_FM;
+	uint16_t		modeI2C_FM;
 	uint8_t 		maxI2C_SM;
 	uint8_t			maxI2C_FM;
 } I2C_Handler_t;
