@@ -1,8 +1,8 @@
 /*
  * main.h
  *
- *  Created on: Aug 2, 2024
- *      Author: aristizabal
+ *      Author: Sebastian Gaviria
+ *
  */
 
 #ifndef MAIN_H_
@@ -14,10 +14,12 @@
 #include "task.h"
 #include "queue.h"
 #include "timers.h"
+#include "semphr.h"
 
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include <gpio_driver_hal.h>
 #include <pll_driver_hal.h>
@@ -47,5 +49,15 @@ extern TaskHandle_t xHandleTask_Commands;
 void vTask_Menu(void* pvParameters);
 void vTask_Print(void* pvParameters);
 void vTask_Commands(void* pvParameters);
+
+
+void led_state_callback(TimerHandle_t xTimer);
+
+extern QueueHandle_t xQueue_InputData;
+extern QueueHandle_t xQueue_Print;
+
+extern state_t next_state;
+
+extern USART_Handler_t commTerm_Handler;
 
 #endif /* MAIN_H_ */
