@@ -10,6 +10,7 @@ C_SRCS += \
 ../Src/exti_driver_hal.c \
 ../Src/gpio_driver_hal.c \
 ../Src/i2c_driver_hal.c \
+../Src/mpu6050_driver.c \
 ../Src/pll_driver_hal.c \
 ../Src/pwm_driver_hal.c \
 ../Src/systick_driver_hal.c \
@@ -22,6 +23,7 @@ OBJS += \
 ./Src/exti_driver_hal.o \
 ./Src/gpio_driver_hal.o \
 ./Src/i2c_driver_hal.o \
+./Src/mpu6050_driver.o \
 ./Src/pll_driver_hal.o \
 ./Src/pwm_driver_hal.o \
 ./Src/systick_driver_hal.o \
@@ -34,6 +36,7 @@ C_DEPS += \
 ./Src/exti_driver_hal.d \
 ./Src/gpio_driver_hal.d \
 ./Src/i2c_driver_hal.d \
+./Src/mpu6050_driver.d \
 ./Src/pll_driver_hal.d \
 ./Src/pwm_driver_hal.d \
 ./Src/systick_driver_hal.d \
@@ -48,7 +51,7 @@ Src/%.o Src/%.su: ../Src/%.c Src/subdir.mk
 clean: clean-Src
 
 clean-Src:
-	-$(RM) ./Src/adc_driver_hal.d ./Src/adc_driver_hal.o ./Src/adc_driver_hal.su ./Src/cmd_driver.d ./Src/cmd_driver.o ./Src/cmd_driver.su ./Src/exti_driver_hal.d ./Src/exti_driver_hal.o ./Src/exti_driver_hal.su ./Src/gpio_driver_hal.d ./Src/gpio_driver_hal.o ./Src/gpio_driver_hal.su ./Src/i2c_driver_hal.d ./Src/i2c_driver_hal.o ./Src/i2c_driver_hal.su ./Src/pll_driver_hal.d ./Src/pll_driver_hal.o ./Src/pll_driver_hal.su ./Src/pwm_driver_hal.d ./Src/pwm_driver_hal.o ./Src/pwm_driver_hal.su ./Src/systick_driver_hal.d ./Src/systick_driver_hal.o ./Src/systick_driver_hal.su ./Src/timer_driver_hal.d ./Src/timer_driver_hal.o ./Src/timer_driver_hal.su ./Src/usart_driver_hal.d ./Src/usart_driver_hal.o ./Src/usart_driver_hal.su
+	-$(RM) ./Src/adc_driver_hal.d ./Src/adc_driver_hal.o ./Src/adc_driver_hal.su ./Src/cmd_driver.d ./Src/cmd_driver.o ./Src/cmd_driver.su ./Src/exti_driver_hal.d ./Src/exti_driver_hal.o ./Src/exti_driver_hal.su ./Src/gpio_driver_hal.d ./Src/gpio_driver_hal.o ./Src/gpio_driver_hal.su ./Src/i2c_driver_hal.d ./Src/i2c_driver_hal.o ./Src/i2c_driver_hal.su ./Src/mpu6050_driver.d ./Src/mpu6050_driver.o ./Src/mpu6050_driver.su ./Src/pll_driver_hal.d ./Src/pll_driver_hal.o ./Src/pll_driver_hal.su ./Src/pwm_driver_hal.d ./Src/pwm_driver_hal.o ./Src/pwm_driver_hal.su ./Src/systick_driver_hal.d ./Src/systick_driver_hal.o ./Src/systick_driver_hal.su ./Src/timer_driver_hal.d ./Src/timer_driver_hal.o ./Src/timer_driver_hal.su ./Src/usart_driver_hal.d ./Src/usart_driver_hal.o ./Src/usart_driver_hal.su
 
 .PHONY: clean-Src
 

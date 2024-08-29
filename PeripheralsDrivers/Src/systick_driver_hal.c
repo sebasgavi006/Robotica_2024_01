@@ -7,168 +7,92 @@
 #include <stdint.h>
 #include "stm32f4xx.h"
 #include "systick_driver_hal.h"
+#include "pll_driver_hal.h"
 
+uint64_t ticks = 0;
+uint64_t ticks_start = 0;
+uint64_t ticks_counting = 0;
 
-static uint32_t countTicks = 0;
-static uint32_t startTick = 0; // Para la función de Delay
+void config_SysTick_ms(uint8_t systemClock){
+	//Reiniciamos el valor de la variabl que cuenta el tiempo
+	ticks = 0;
 
-/*
- * Cabeceras de las funciones privadas
- */
-static void systick_config_interrupt(Systick_Handler_t *pSystickHandler);
+	//cargando el valor del limite de incrementos que representan 1 ms
 
-/*
- * Función para configurar el Systick
- */
-void systick_Config(Systick_Handler_t *pSystickHandler){
+	switch (systemClock) {
+		case 0:
+			SysTick->LOAD = SYSTICK_LOAD_VALUE_16MHz_1ms;
+			break;
+		case 1:
+			SysTick->LOAD = SYSTICK_LOAD_VALUE_16MHz_1ms;
+			break;
+		case 2:
+			SysTick->LOAD = SYSTICK_LOAD_VALUE_100MHz_1ms;
+			break;
+		case 3:
+			SysTick->LOAD = SYSTICK_LOAD_VALUE_80MHz_1ms;
+			break;
+		default:
+			SysTick->LOAD = SYSTICK_LOAD_VALUE_16MHz_1ms;
+			break;
+	}
 
-	// La variable que cuenta los Ticks del sistema empieza en 0, para asegurarnos mejor.
-	// Con ella, podemos llevar una "Cuenta" del tiempo activo del sistema
-	countTicks = 0;
+	//Limpiamos el valor actual del SysTick
+	SysTick->VAL = 0;
+	//Configuramos el reloj interno como el resultado para el timer
+	SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk;
 
-	/*
-	 * 1. Asignar el valor del Reload
-	 */
-
-	// Asignamos el valor del Reload cargado en la estructura de configuración, en el registro correspondiente
-	pSystickHandler->pSystick->LOAD = pSystickHandler->Systick_Config.Systick_Reload;
-
-	/*
-	 * 2. Limpiamos el valor actual del contador del Systick
-	 */
-	pSystickHandler->pSystick->VAL = 0;
-
-
-	/* Configurar el registro CTRL
-	 * 	3a. Configuramos la fuente de la señal (en este caso, la signa clock del procesador)
-	 */
-	// Limpiamos el registro
-	pSystickHandler->pSystick->CTRL &= ~SysTick_CTRL_CLKSOURCE_Msk;
-
-	// Asignamos la señal de reloj principal (Fosc -> Frecuencia de oscilanción) al Systick
-	pSystickHandler->pSystick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk;
-
-	/*
-	 * 	3b. Configuramos las interrupciones del Systick
-	 */
-	// Desactivamos las interrupciones globales
+	//Desactivamos las interrupciones
 	__disable_irq();
 
-	// Configuramos las interrupciones del Systick
-	systick_config_interrupt(pSystickHandler);
+	//Matriculamos la interupcion en el nvic
+	NVIC_EnableIRQ(SysTick_IRQn);
 
-	// Activamos las interrupciones globales
+	//Activamos la interrupcion debida al conteo del SysTick
+	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+	//Activamos el timer
+	SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
+
+	//Activamos de nuevo las interrupciones globales
 	__enable_irq();
 
-	/*
-	 * 4. Arrancamos con el Timer Systick apagado
-	 */
-	systick_SetState(pSystickHandler, SYSTICK_OFF);
 }
 
-
-/*
- * Con esta función encendemos o apagamos el Timer
- */
-void systick_SetState(Systick_Handler_t *pSystickHandler, uint8_t newState){
-
-	/* Mirammos cuál estado queremos configurar */
-	switch(newState){
-	case SYSTICK_ON: {
-		pSystickHandler->pSystick->CTRL |= SysTick_CTRL_ENABLE_Msk;
-		break;
-	}
-	case SYSTICK_OFF: {
-		pSystickHandler->pSystick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-		break;
-	}
-	default: {
-		__NOP();
-		break;
-	}
-	}
-
+uint64_t getTicks_ms(void){
+	return ticks;
 }
 
+void delay_ms(uint32_t wait_time_ms){
 
-/*
- * Devuelve la cantidad de Ticks (cuenta los ticks, o del tiempo según el Reload d)
- */
-uint64_t systick_GetTicks(void){
-	return countTicks;
-}
+	//Captura el primer valor de tiempo para comparar
+	ticks_start = getTicks_ms();
+
+	//Captura el segundo valor de tiempo para comparar
+	ticks_counting = getTicks_ms();
 
 
-/*
- * Activamos o desactivamos las interrupciones. También las matriculamos o desmatriculamos del NVIC
- */
-static void systick_config_interrupt(Systick_Handler_t *pSystickHandler){
-
-	if(pSystickHandler->Systick_Config.Systick_IntState == SYSTICK_INT_ENABLE){
-		// Limpiamos la posición
-		pSystickHandler->pSystick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
-
-		// Activamos la interrupción
-		pSystickHandler->pSystick->CTRL |= SysTick_CTRL_TICKINT_Msk;
-
-		// Matriculamos la interrupción en el NVIC
-		NVIC_EnableIRQ(SysTick_IRQn);
-	}
-	else{
-		// Desactivamos la interrupción
-		pSystickHandler->pSystick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
-
-		// Desmatriculamos la interrupción en el NVIC
-		NVIC_DisableIRQ(SysTick_IRQn);
+	//Compara si el calor de "countig" es mayor que el valor de "start + wait"
+	//Actualiza el valor "counting"
+	//Repite esta operacion  hasta que counting  sea mayor (se cumple el tiempo de espera)
+	while(ticks_counting <(ticks_start + (uint64_t)wait_time_ms)){
+		//Actualizar el valor
+		ticks_counting = getTicks_ms();
 	}
 }
 
 
-/*
- * Función para generar un Delay, es decir, una "pausa controlado del main", usando el SysTick.
- * (El valor del Prescaler para que el tiempo cuente en intervalos de 1 ms, debe ser
- * PSC -> 16000
- */
-void systick_Delay_ms(uint32_t wait_time_ms){
-
-	// Obtenemos el Tick actual del contador
-	startTick = systick_GetTicks();
-
-	// Obtiene el valor de tiempo para comparar inicialmente
-	countTicks = systick_GetTicks();
-
-	/* Comparamos el valor de cada actualización, con el valor de referencia
-	 * startTick + wait_time_ms, para que entre en un ciclo hasta que pase
-	 * el intervalo de tiempo deseado
-	 */
-	while(countTicks < (startTick + (uint64_t)wait_time_ms)){
-		// Guardamos el valor de la cuenta actual
-		countTicks = systick_GetTicks();
-	}
-
-
-} // Fin systick_Delay_ms()
-
-
-__attribute__((weak)) void systick_Callback(void){
-	__NOP();
-}
-
-/*
- * El Handler de IRQ del Systick (El nombre de esta función es propio de las librerías del Cortex M4 -> )
- */
 void SysTick_Handler(void){
-
-	// Verificamos si la interrupción se dio por el Systick
+	//Verificamos que la interrupcion se lanzo
 	if(SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk){
-		/* Limpiamos la bandera que indica que la interrupción se ha generado */
+
+		//Limpiamos la bandera
 		SysTick->CTRL &= ~SysTick_CTRL_COUNTFLAG_Msk;
 
-		/* Cada que se de una interrupción, aumentamos en 1 el contador de ticks */
-		countTicks++;
 
-		/* Llamamos a la función que se debe encargar de hacer algo con esta interrupción */
-		systick_Callback();
+		// Incrementar el contador
+		ticks++;
+
+
 	}
-
 }

@@ -40,31 +40,22 @@ GPIO_Handler_t stateLed = {0}; // PinA5PinA5
 
 // Handler Timers
 Timer_Handler_t Tim_Blinky = {0};
-Timer_Handler_t Tim_Micros = {0};
 
-
-// Handler para el PLL
-PLL_Config_t pllHandler = {0};
-
-// Handler Systick
-
-
-/*
- * Variables globales
- */
-uint32_t SystemCoreClock = 100E6;
+/* Variables globales  */
 
 //USART
 GPIO_Handler_t handlerPinTX		= {0};
 GPIO_Handler_t handlerPinRX		= {0};
-USART_Handler_t usart1Comm		= {0};
+USART_Handler_t usart2Comm		= {0};
+uint8_t sendMsg = 0;
 
 
-char bufferMsg[128] = {0};
 char bufferReceiver[64] = {0};
 uint8_t rxData = 0;
 uint8_t counterReception = 0;
 uint8_t stringComplete = 0;
+
+char bufferMsg[64] = {0};
 
 // Variables para los comandos
 char cmd[64] = {0};
@@ -76,30 +67,6 @@ char lastString[64] = {0};
 uint8_t defaultSpeed = 0;
 uint8_t counterPeriodBlinky = 0;
 uint8_t flagTimer = 0;
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-I2C_Handler_t imuHandler = {0};
-GPIO_Handler_t imuSDA = {0};
-GPIO_Handler_t imuSCL = {0};
-
-
-uint8_t rawAccel[6] = {0};
-uint8_t rawGyro[6] = {0};
-uint8_t rawTemp[6] = {0};
-
-
-char bufferData[64] = "Accel ADXL345 testing...";
-float accel[6] = {0};
-float gyro[6] = {0};
-float temp[6] = {0};
-
 
 
 
@@ -127,47 +94,57 @@ int main(void){
 //	RCC->CR &= ~(RCC_CR_HSITRIM); // Limpiamos el registro
 //	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
 
-	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	initSystem();
+	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	delay_ms(100);
-	imuBegin(&imuHandler);
+//	imuBegin(&imuHandler);
 	delay_ms(10);
-	imuBegin(&imuHandler);
-	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
-	setGyroRange(&imuHandler, GYRO_RANGE_250_DEG);
+//	imuBegin(&imuHandler);
+//	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
+//	setGyroRange(&imuHandler, GYRO_RANGE_250_DEG);
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
-	usart_WriteMsg(&usart1Comm, bufferMsg);
+	usart_WriteMsg(&usart2Comm, bufferMsg);
 
 	/* Loop forever */
 	while (1) {
 
-		if (flagTimer) {
-			rawData(&imuHandler, rawAccel, dataTypeAccel);
-			readData(rawAccel, accel, dataTypeAccel, ACCEL_RANGE_2_G);
+		if (sendMsg > 4) {
+			usart_WriteMsg(&usart2Comm, "Hola mundo\n");
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
 
-			sprintf(bufferData, "Axis X data (r) \n");
-			usart_WriteMsg(&usart1Comm, bufferData);
+			usart_WriteMsg(&usart2Comm, "Cambiamos velocidad\n");
 
-			sprintf(bufferData, "AccelX = %.2f \n", accel[0]);
-			usart_WriteMsg(&usart1Comm, bufferData);
-			flagTimer = 0;
-		}
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
 
-//	begin(&imuHandler);
+			usart_WriteMsg(&usart2Comm, "CUCHAU\n");
 
-	}
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+
+			sendMsg = 0;
+		}//fin del condicional
+	}//fin del ciclo principal
 	return 0;
-
-
 }	// Fin del main
-
 
 
 // Función para configurar los periféricos iniciales del sistemas
 void initSystem(void){
-
-
-
 	// 1. ===== PUERTOS Y PINES =====
 	/* Configurando el pin para el Blinky */
 	stateLed.pGPIOx								= GPIOA;
@@ -182,20 +159,15 @@ void initSystem(void){
 
 
 
-	// 2. ===== TIMERS =====
+	/* ==================================== Configurando los TIMERS =============================================*/
 	/* Configurando el Timer del Blinky */
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 16000;	// Genera incrementos de 1 ms. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 500;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= BTIMER_SPEED_1MHZ_1ms;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 250;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
 	timer_SetState(&Tim_Blinky, TIMER_ON);
-
-
-
-
-	// 5. ====== SYSTICK =====
 
 
 
@@ -212,44 +184,44 @@ void initSystem(void){
 	handlerPinRX.pinConfig.GPIO_PinAltFunMode				= AF7;
 	gpio_Config(&handlerPinRX);
 
-	usart1Comm.ptrUSARTx									= USART2;
-	usart1Comm.USART_Config.baudrate						= USART_BAUDRATE_19200;
-	usart1Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
-	usart1Comm.USART_Config.parity							= USART_PARITY_NONE;
-	usart1Comm.USART_Config.stopbits						= USART_STOPBIT_1;
-	usart1Comm.USART_Config.mode							= USART_MODE_RXTX;
-	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
-	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
-	usart_Config(&usart1Comm);
+	usart2Comm.ptrUSARTx									= USART2;
+	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_19200;
+	usart2Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
+	usart2Comm.USART_Config.parity							= USART_PARITY_NONE;
+	usart2Comm.USART_Config.stopbits						= USART_STOPBIT_1;
+	usart2Comm.USART_Config.mode							= USART_MODE_RXTX;
+	usart2Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
+	usart2Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
+	usart_Config(&usart2Comm);
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
-	imuSDA.pGPIOx								= GPIOC;
-	imuSDA.pinConfig.GPIO_PinNumber				= PIN_9;
-	imuSDA.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
-	imuSDA.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
-	imuSDA.pinConfig.GPIO_PinAltFunMode			= AF4;
-	imuSDA.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-	imuSDA.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
-	gpio_Config(&imuSDA);
-
-	imuSCL.pGPIOx								= GPIOA;
-	imuSCL.pinConfig.GPIO_PinNumber				= PIN_8;
-	imuSCL.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
-	imuSCL.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
-	imuSCL.pinConfig.GPIO_PinAltFunMode			= AF4;
-	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
-	gpio_Config(&imuSCL);
-
-
-	imuHandler.slaveAddress = 0b1101000; //105;
-	imuHandler.ptrI2Cx		= I2C3;
-	imuHandler.modeI2C		= I2C_MODE_SM;
-	imuHandler.mainClock	= MAIN_CLOCK_16_MHz_FOR_I2C;
-	imuHandler.maxI2C_SM	= I2C_MODE_SM_SPEED_100KHz_16MHz;
-
-	i2c_Config(&imuHandler);
+//	imuSDA.pGPIOx								= GPIOC;
+//	imuSDA.pinConfig.GPIO_PinNumber				= PIN_9;
+//	imuSDA.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+//	imuSDA.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
+//	imuSDA.pinConfig.GPIO_PinAltFunMode			= AF4;
+//	imuSDA.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	imuSDA.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+//	gpio_Config(&imuSDA);
+//
+//	imuSCL.pGPIOx								= GPIOA;
+//	imuSCL.pinConfig.GPIO_PinNumber				= PIN_8;
+//	imuSCL.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+//	imuSCL.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
+//	imuSCL.pinConfig.GPIO_PinAltFunMode			= AF4;
+//	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+//	gpio_Config(&imuSCL);
+//
+//
+//	imuHandler.slaveAddress = 0b1101000; //105;
+//	imuHandler.ptrI2Cx		= I2C3;
+//	imuHandler.modeI2C		= I2C_MODE_SM;
+//	imuHandler.mainClock	= MAIN_CLOCK_16_MHz_FOR_I2C;
+//	imuHandler.maxI2C_SM	= I2C_MODE_SM_SPEED_100KHz_16MHz;
+//
+//	i2c_Config(&imuHandler);
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,20 +237,20 @@ void parseCommands(char  *ptrbufferReception){
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
 	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
+		usart_WriteMsg(&usart2Comm, "Help Menu CMDS: \n");
+		usart_WriteMsg(&usart2Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
 
-		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
+		usart_WriteMsg(&usart2Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
 
-		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
+		usart_WriteMsg(&usart2Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
 
 
-		usart_WriteMsg(&usart1Comm, "6) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart1Comm, "7) Resume \" Resume @\" \n");
+		usart_WriteMsg(&usart2Comm, "6) Stop \" Stop @\" \n");
+		usart_WriteMsg(&usart2Comm, "7) Resume \" Resume @\" \n");
 
 	}
 
@@ -291,12 +263,12 @@ void parseCommands(char  *ptrbufferReception){
 
 
 	else if (strcmp(cmd, "reset") == 0) {
-		usart_WriteMsg(&usart1Comm, "PWR_MGMT_1 reset \n");
+		usart_WriteMsg(&usart2Comm, "PWR_MGMT_1 reset \n");
 
 	}
 
 	else{
-		usart_WriteMsg(&usart1Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		usart_WriteMsg(&usart2Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 	}
 
 
@@ -304,16 +276,13 @@ void parseCommands(char  *ptrbufferReception){
 
 /* Callback de Timer 3 para el Blinky */
 void Timer2_Callback(void){
-	gpio_TooglePin(&stateLed);
-	counterPeriodBlinky++;
-	// La bandera se levanta cada 500 ms
-	flagTimer = 1;
+	sendMsg++;
 }
 
 
 /* Interrupciones por recepcion a traves de transmision serial */
-void usart1_RxCallback(void){
-	rxData = usart1_getRxData();
+void usart2_RxCallback(void){
+	rxData = usart2_getRxData();
 
 }
 

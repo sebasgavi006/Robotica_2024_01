@@ -37,31 +37,31 @@
 
 
 
+typedef enum {
+  ACCEL_RANGE_2_G   = 0x0,  ///< +/- 2g (default value)
+  ACCEL_RANGE_4_G   = 0x8,  ///< +/- 4g
+  ACCEL_RANGE_8_G   = 0x10,  ///< +/- 8g
+  ACCEL_RANGE_16_G  = 0x18, ///< +/- 16g
+}eAccelRange_t;
+
+
+
+typedef enum {
+  GYRO_RANGE_250_DEG   = 0x0,  ///< +/- 250 deg/s (default value)
+  GYRO_RANGE_500_DEG   = 0x08,  ///< +/- 500 deg/s
+  GYRO_RANGE_1000_DEG  = 0x10, ///< +/- 1000 deg/s
+  GYRO_RANGE_2000_DEG  = 0x18, ///< +/- 2000 deg/s
+}eGyroRange_t;
+
+
 enum {
-  MPU6050_RANGE_2_G   = 0x0,  ///< +/- 2g (default value)
-  MPU6050_RANGE_4_G   = 0x8,  ///< +/- 4g
-  MPU6050_RANGE_8_G   = 0x10,  ///< +/- 8g
-  MPU6050_RANGE_16_G  = 0x18, ///< +/- 16g
-};
-
-
-
-enum {
-  MPU6050_RANGE_250_DEG   = 0x0,  ///< +/- 250 deg/s (default value)
-  MPU6050_RANGE_500_DEG   = 0x08,  ///< +/- 500 deg/s
-  MPU6050_RANGE_1000_DEG  = 0x10, ///< +/- 1000 deg/s
-  MPU6050_RANGE_2000_DEG  = 0x18, ///< +/- 2000 deg/s
-};
-
-
-enum {
-  MPU6050_BAND_260_HZ, ///< Docs imply this disables the filter
-  MPU6050_BAND_184_HZ, ///< 184 Hz
-  MPU6050_BAND_94_HZ,  ///< 94 Hz
-  MPU6050_BAND_44_HZ,  ///< 44 Hz
-  MPU6050_BAND_21_HZ,  ///< 21 Hz
-  MPU6050_BAND_10_HZ,  ///< 10 Hz
-  MPU6050_BAND_5_HZ,   ///< 5 Hz
+  BAND_260_HZ, ///< Docs imply this disables the filter
+  BAND_184_HZ, ///< 184 Hz
+  BAND_94_HZ,  ///< 94 Hz
+  BAND_44_HZ,  ///< 44 Hz
+  BAND_21_HZ,  ///< 21 Hz
+  BAND_10_HZ,  ///< 10 Hz
+  BAND_5_HZ,   ///< 5 Hz
 };
 
 enum {
@@ -80,7 +80,7 @@ enum {
   dataTypeTemp ///< +/- 1000 deg/s
 };
 
-void begin(I2C_Handler_t* ptrHandlerI2C);
+void imuBegin(I2C_Handler_t* ptrHandlerI2C);
 void calibration(float* rateCalibrationArray);
 void readAccelData(float* accelData);
 void readGyroData(float* gyroData);
@@ -89,7 +89,7 @@ float calculateAngle(float* anglesData,  float* accelData);
 
 
 //accel_range_t getAccelRange(void);
-void setAccelRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
+void setAccelRange(I2C_Handler_t* ptrHandlerI2C, eAccelRange_t Range);
 //gyro_range_t getGyroRange(void);
 void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
 

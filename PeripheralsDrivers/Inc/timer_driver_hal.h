@@ -10,6 +10,9 @@
 
 #include "stm32f4xx.h"
 
+
+#define BTIMER_SPEED_1MHZ_1ms				16000
+
 enum
 {
 	TIMER_INT_DISABLE	= 0,
