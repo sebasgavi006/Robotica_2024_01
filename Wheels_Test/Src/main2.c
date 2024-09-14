@@ -57,7 +57,7 @@ uint32_t SystemCoreClock = 100E6;
 //USART
 GPIO_Handler_t handlerPinTX		= {0};
 GPIO_Handler_t handlerPinRX		= {0};
-USART_Handler_t usart1Comm		= {0};
+USART_Handler_t usart2Comm		= {0};
 
 
 char bufferMsg[128] = {0};
@@ -76,13 +76,6 @@ char lastString[64] = {0};
 uint8_t defaultSpeed = 0;
 uint8_t counterPeriodBlinky = 0;
 uint8_t flagTimer = 0;
-
-
-
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 I2C_Handler_t imuHandler = {0};
@@ -127,29 +120,67 @@ int main(void){
 //	RCC->CR &= ~(RCC_CR_HSITRIM); // Limpiamos el registro
 //	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
 
-	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	initSystem();
-	delay_ms(100);
+	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
+	/* 5. Generamos la condición Stop, para que el slave se detenga después de 1 byte */
+//	delay_ms(1);
+//	i2c_StopTransaction(&imuHandler);
+	delay_ms(1);
 	imuBegin(&imuHandler);
-	delay_ms(10);
+	delay_ms(1);
 	imuBegin(&imuHandler);
+	uint8_t WhoAmI = i2c_ReadSingleRegister(&imuHandler,WHO_AM_I);
+
+	sprintf(bufferData, "WHOAMI = %u \n", WhoAmI);
+	usart_WriteMsg(&usart2Comm, bufferData);
+
 	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
 	setGyroRange(&imuHandler, GYRO_RANGE_250_DEG);
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
-	usart_WriteMsg(&usart1Comm, bufferMsg);
+	usart_WriteMsg(&usart2Comm, bufferMsg);
 
 	/* Loop forever */
 	while (1) {
 
 		if (flagTimer) {
-			rawData(&imuHandler, rawAccel, dataTypeAccel);
-			readData(rawAccel, accel, dataTypeAccel, ACCEL_RANGE_2_G);
 
-			sprintf(bufferData, "Axis X data (r) \n");
-			usart_WriteMsg(&usart1Comm, bufferData);
+			usart_WriteMsg(&usart2Comm, "Hola mundo\n");
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
+			delay_ms(2000);
+			gpio_TooglePin(&stateLed);
+
+			usart_WriteMsg(&usart2Comm, "Cambiamos velocidad\n");
+
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
+			delay_ms(500);
+			gpio_TooglePin(&stateLed);
+
+			usart_WriteMsg(&usart2Comm, "CUCHAU\n");
+
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+			delay_ms(100);
+			gpio_TooglePin(&stateLed);
+
+			readAccel(&imuHandler, accel);
 
 			sprintf(bufferData, "AccelX = %.2f \n", accel[0]);
-			usart_WriteMsg(&usart1Comm, bufferData);
+			usart_WriteMsg(&usart2Comm, bufferData);
+
+			sprintf(bufferData, "AccelY = %.2f \n", accel[1]);
+			usart_WriteMsg(&usart2Comm, bufferData);
+
+			sprintf(bufferData, "AccelZ = %.2f \n", accel[2]);
+			usart_WriteMsg(&usart2Comm, bufferData);
 			flagTimer = 0;
 		}
 
@@ -212,15 +243,15 @@ void initSystem(void){
 	handlerPinRX.pinConfig.GPIO_PinAltFunMode				= AF7;
 	gpio_Config(&handlerPinRX);
 
-	usart1Comm.ptrUSARTx									= USART2;
-	usart1Comm.USART_Config.baudrate						= USART_BAUDRATE_19200;
-	usart1Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
-	usart1Comm.USART_Config.parity							= USART_PARITY_NONE;
-	usart1Comm.USART_Config.stopbits						= USART_STOPBIT_1;
-	usart1Comm.USART_Config.mode							= USART_MODE_RXTX;
-	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
-	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
-	usart_Config(&usart1Comm);
+	usart2Comm.ptrUSARTx									= USART2;
+	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_19200;
+	usart2Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
+	usart2Comm.USART_Config.parity							= USART_PARITY_NONE;
+	usart2Comm.USART_Config.stopbits						= USART_STOPBIT_1;
+	usart2Comm.USART_Config.mode							= USART_MODE_RXTX;
+	usart2Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
+	usart2Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
+	usart_Config(&usart2Comm);
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -238,12 +269,12 @@ void initSystem(void){
 	imuSCL.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
 	imuSCL.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
 	imuSCL.pinConfig.GPIO_PinAltFunMode			= AF4;
-	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_PULLUP;
 	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
 	gpio_Config(&imuSCL);
 
 
-	imuHandler.slaveAddress = 0b1101000; //105;
+	imuHandler.slaveAddress = MPU6050_ADDRESS; //105;
 	imuHandler.ptrI2Cx		= I2C3;
 	imuHandler.modeI2C		= I2C_MODE_SM;
 	imuHandler.mainClock	= MAIN_CLOCK_16_MHz_FOR_I2C;
@@ -265,20 +296,20 @@ void parseCommands(char  *ptrbufferReception){
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
 	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
+		usart_WriteMsg(&usart2Comm, "Help Menu CMDS: \n");
+		usart_WriteMsg(&usart2Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
 
-		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
+		usart_WriteMsg(&usart2Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
 
-		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
+		usart_WriteMsg(&usart2Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
+		usart_WriteMsg(&usart2Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
 
 
-		usart_WriteMsg(&usart1Comm, "6) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart1Comm, "7) Resume \" Resume @\" \n");
+		usart_WriteMsg(&usart2Comm, "6) Stop \" Stop @\" \n");
+		usart_WriteMsg(&usart2Comm, "7) Resume \" Resume @\" \n");
 
 	}
 
@@ -291,12 +322,12 @@ void parseCommands(char  *ptrbufferReception){
 
 
 	else if (strcmp(cmd, "reset") == 0) {
-		usart_WriteMsg(&usart1Comm, "PWR_MGMT_1 reset \n");
+		usart_WriteMsg(&usart2Comm, "PWR_MGMT_1 reset \n");
 
 	}
 
 	else{
-		usart_WriteMsg(&usart1Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		usart_WriteMsg(&usart2Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 	}
 
 
@@ -304,7 +335,7 @@ void parseCommands(char  *ptrbufferReception){
 
 /* Callback de Timer 3 para el Blinky */
 void Timer2_Callback(void){
-	gpio_TooglePin(&stateLed);
+//	gpio_TooglePin(&stateLed);
 	counterPeriodBlinky++;
 	// La bandera se levanta cada 500 ms
 	flagTimer = 1;

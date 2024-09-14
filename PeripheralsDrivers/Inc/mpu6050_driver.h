@@ -17,10 +17,12 @@
 
 #define PWR_MGMT_1                    0x6b
 #define CONFIG_REG                    0x1A
+#define WHO_AM_I					  0x75
 
 
 
-#define MPU6050_ADDRESS               0x69
+#define MPU6050_ADDRESS               0b1101000//0x68
+#define MPU6050_ADDRESS_0             0b1101001//0x69
 #define MPU6050_ACCEL_CONFIG_REG      0x1C
 #define MPU6050_GYRO_CONFIG_REG       0x1B
 #define MPU6050_ACCEL_XOUT_H_REG      0x3B
@@ -95,6 +97,9 @@ void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
 
 
 void reset(void);
+
+void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray);
+void readAcc(uint8_t* rawArray ,float* outData);
 
 void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType);
 void readData(uint8_t* rawArray ,float* outData, uint8_t dataType, uint8_t sensorCfg);

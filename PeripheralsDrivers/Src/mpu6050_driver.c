@@ -24,12 +24,26 @@ void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange){
 
 
 
-float calculateAngle(float* anglesData, float* accelData){
-  anglesData[0]   = atan(accelData[1] / sqrt(accelData[0]*accelData[0] + accelData[2]*accelData[2])) * 1/(M_PI/180);   //angleRoll
-  anglesData[1]   = atan(-accelData[0] / sqrt(accelData[1]*accelData[1] + accelData[2]*accelData[2])) * 1/(M_PI/180);  //anglePitch
-  anglesData[2]   = atan(sqrt(accelData[0]*accelData[0] + accelData[1]*accelData[1]) / accelData[2] ) * 1/(M_PI/180);  //angleYaw
-  return *anglesData;
+
+void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
+	uint8_t rawData[6] = {0};
+	i2c_ReadRegisters(ptrHandlerI2C, MPU6050_ACCEL_XOUT_H_REG, 6, rawData);
+    int16_t accelX = (int16_t)((rawData[0] << 8) | rawData[1]);
+    int16_t accelY = (int16_t)((rawData[2] << 8) | rawData[3]);
+    int16_t accelZ = (int16_t)((rawData[4] << 8) | rawData[5]);
+
+    dataArray[0] = accelX / 16384.0f;
+    dataArray[1] = accelY / 16384.0f;
+    dataArray[2] = accelZ / 16384.0f;
 }
+
+void readAcc(uint8_t* rawArray ,float* outData){
+
+	outData[0] = rawArray[0] / 16384;
+	outData[1] = rawArray[1] / 16384;
+	outData[2] = rawArray[2] / 16384;
+}
+
 
 
 void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType){
@@ -132,3 +146,10 @@ void readData(uint8_t* rawArray ,float* outData, uint8_t dataType, uint8_t senso
 
 }
 
+
+float calculateAngle(float* anglesData, float* accelData){
+  anglesData[0]   = atan(accelData[1] / sqrt(accelData[0]*accelData[0] + accelData[2]*accelData[2])) * 1/(M_PI/180);   //angleRoll
+  anglesData[1]   = atan(-accelData[0] / sqrt(accelData[1]*accelData[1] + accelData[2]*accelData[2])) * 1/(M_PI/180);  //anglePitch
+  anglesData[2]   = atan(sqrt(accelData[0]*accelData[0] + accelData[1]*accelData[1]) / accelData[2] ) * 1/(M_PI/180);  //angleYaw
+  return *anglesData;
+}
