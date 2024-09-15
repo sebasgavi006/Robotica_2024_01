@@ -7,5 +7,5 @@
 ../Src/gpio_driver_hal.c:233:6:gpio_config_alternate_function	24	static
 ../Src/gpio_driver_hal.c:268:6:gpio_WritePin	16	static
 ../Src/gpio_driver_hal.c:289:10:gpio_ReadPin	24	static
-../Src/gpio_driver_hal.c:324:6:gpio_TooglePin	24	static
+../Src/gpio_driver_hal.c:324:6:gpio_TogglePin	24	static
 ../Src/gpio_driver_hal.c:346:9:clock_mask	24	static

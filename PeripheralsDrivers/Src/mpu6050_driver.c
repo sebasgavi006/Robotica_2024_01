@@ -37,12 +37,29 @@ void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
     dataArray[2] = accelZ / 16384.0f;
 }
 
-void readAcc(uint8_t* rawArray ,float* outData){
+void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
+	uint8_t rawData[6] = {0};
+	i2c_ReadRegisters(ptrHandlerI2C, MPU6050_GYRO_XOUT_H_REG, 6, rawData);
+    int16_t gyroX = (int16_t)((rawData[0] << 8) | rawData[1]);
+    int16_t gyroY = (int16_t)((rawData[2] << 8) | rawData[3]);
+    int16_t gyroZ = (int16_t)((rawData[4] << 8) | rawData[5]);
 
-	outData[0] = rawArray[0] / 16384;
-	outData[1] = rawArray[1] / 16384;
-	outData[2] = rawArray[2] / 16384;
+    dataArray[0] = gyroX / 131.0f;
+    dataArray[1] = gyroY / 131.0f;
+    dataArray[2] = gyroZ / 131.0f;
 }
+
+void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp){
+	uint8_t rawData[2] = {0};
+	i2c_ReadRegisters(ptrHandlerI2C, MPU6050_TEMP_XOUT_H_REG, 2, rawData);
+    int16_t tempRaw = (int16_t)((rawData[0] << 8) | rawData[1]);
+
+    *temp = (tempRaw / 340.0f) + 36.53f;
+}
+
+
+
+
 
 
 

@@ -44,7 +44,7 @@ Timer_Handler_t Tim_Micros = {0};
 
 
 // Handler para el PLL
-PLL_Config_t pllHandler = {0};
+PLL_Handler_t pllHandler = {0};
 
 // Handler Systick
 
@@ -73,7 +73,7 @@ float secondParameter = 0;
 char lastString[64] = {0};
 
 // Variables globales para el funcionamiento del robot
-uint8_t defaultSpeed = 0;
+
 uint8_t counterPeriodBlinky = 0;
 uint8_t flagTimer = 0;
 
@@ -82,23 +82,10 @@ I2C_Handler_t imuHandler = {0};
 GPIO_Handler_t imuSDA = {0};
 GPIO_Handler_t imuSCL = {0};
 
-
-uint8_t rawAccel[6] = {0};
-uint8_t rawGyro[6] = {0};
-uint8_t rawTemp[6] = {0};
-
-
-char bufferData[64] = "Accel ADXL345 testing...";
-float accel[6] = {0};
-float gyro[6] = {0};
-float temp[6] = {0};
-
-
-
-
-
-
-
+char bufferData[64] = "Accel MPU6050 testing...";
+float accel[3] = {0};
+float gyro[3] = {0};
+float temp = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -116,15 +103,12 @@ int main(void){
 	// Configuramos el PLL para que el micro corra a 100MHz
 //	systemClock_100MHz(&pllHandler);
 //	systemClock_Output(); // el pin PC9 configurado como salida para leer la freq
-//
+
 //	RCC->CR &= ~(RCC_CR_HSITRIM); // Limpiamos el registro
 //	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
 
 	initSystem();
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
-	/* 5. Generamos la condición Stop, para que el slave se detenga después de 1 byte */
-//	delay_ms(1);
-//	i2c_StopTransaction(&imuHandler);
 	delay_ms(1);
 	imuBegin(&imuHandler);
 	delay_ms(1);
@@ -144,43 +128,18 @@ int main(void){
 
 		if (flagTimer) {
 
-			usart_WriteMsg(&usart2Comm, "Hola mundo\n");
-			gpio_TooglePin(&stateLed);
-			delay_ms(2000);
-			gpio_TooglePin(&stateLed);
-			delay_ms(2000);
-			gpio_TooglePin(&stateLed);
-			delay_ms(2000);
-			gpio_TooglePin(&stateLed);
+			usart_WriteMsg(&usart2Comm, "Datos de acelerómetro\n");
 
-			usart_WriteMsg(&usart2Comm, "Cambiamos velocidad\n");
-
-			delay_ms(500);
-			gpio_TooglePin(&stateLed);
-			delay_ms(500);
-			gpio_TooglePin(&stateLed);
-			delay_ms(500);
-			gpio_TooglePin(&stateLed);
-
-			usart_WriteMsg(&usart2Comm, "CUCHAU\n");
-
-			delay_ms(100);
-			gpio_TooglePin(&stateLed);
-			delay_ms(100);
-			gpio_TooglePin(&stateLed);
-			delay_ms(100);
-			gpio_TooglePin(&stateLed);
-
-			readAccel(&imuHandler, accel);
-
-			sprintf(bufferData, "AccelX = %.2f \n", accel[0]);
-			usart_WriteMsg(&usart2Comm, bufferData);
-
-			sprintf(bufferData, "AccelY = %.2f \n", accel[1]);
-			usart_WriteMsg(&usart2Comm, bufferData);
-
-			sprintf(bufferData, "AccelZ = %.2f \n", accel[2]);
-			usart_WriteMsg(&usart2Comm, bufferData);
+//			readAccel(&imuHandler, accel);
+//
+//			sprintf(bufferData, "AccelX = %.2f \n", accel[0]);
+//			usart_WriteMsg(&usart2Comm, bufferData);
+//
+//			sprintf(bufferData, "AccelY = %.2f \n", accel[1]);
+//			usart_WriteMsg(&usart2Comm, bufferData);
+//
+//			sprintf(bufferData, "AccelZ = %.2f \n", accel[2]);
+//			usart_WriteMsg(&usart2Comm, bufferData);
 			flagTimer = 0;
 		}
 
@@ -216,19 +175,20 @@ void initSystem(void){
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky */
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 16000;	// Genera incrementos de 1 ms. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 500;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 2000;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
 	timer_SetState(&Tim_Blinky, TIMER_ON);
 
+	/* ==================================== PLL =============================================*/
 
-
-
-	// 5. ====== SYSTICK =====
-
-
+	pllHandler.clkSpeed = FREQUENCY_100MHz;
+	//Calibramos el clock
+	RCC->CR &= ~RCC_CR_HSITRIM;
+	RCC->CR |= (12<<RCC_CR_HSITRIM_Pos);
+	configPLL(&pllHandler);
 
 	/* ==================================== Configurando los USART =============================================*/
 	handlerPinTX.pGPIOx										= GPIOA;
@@ -244,7 +204,7 @@ void initSystem(void){
 	gpio_Config(&handlerPinRX);
 
 	usart2Comm.ptrUSARTx									= USART2;
-	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_19200;
+	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_9600;
 	usart2Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
 	usart2Comm.USART_Config.parity							= USART_PARITY_NONE;
 	usart2Comm.USART_Config.stopbits						= USART_STOPBIT_1;
@@ -277,8 +237,7 @@ void initSystem(void){
 	imuHandler.slaveAddress = MPU6050_ADDRESS; //105;
 	imuHandler.ptrI2Cx		= I2C3;
 	imuHandler.modeI2C		= I2C_MODE_SM;
-	imuHandler.mainClock	= MAIN_CLOCK_16_MHz_FOR_I2C;
-	imuHandler.maxI2C_SM	= I2C_MODE_SM_SPEED_100KHz_16MHz;
+	imuHandler.mainClock	= MAIN_CLOCK_100_MHz_FOR_I2C;
 
 	i2c_Config(&imuHandler);
 
@@ -314,13 +273,6 @@ void parseCommands(char  *ptrbufferReception){
 	}
 
 
-
-
-
-
-
-
-
 	else if (strcmp(cmd, "reset") == 0) {
 		usart_WriteMsg(&usart2Comm, "PWR_MGMT_1 reset \n");
 
@@ -335,7 +287,7 @@ void parseCommands(char  *ptrbufferReception){
 
 /* Callback de Timer 3 para el Blinky */
 void Timer2_Callback(void){
-//	gpio_TooglePin(&stateLed);
+	gpio_TogglePin(&stateLed);
 	counterPeriodBlinky++;
 	// La bandera se levanta cada 500 ms
 	flagTimer = 1;

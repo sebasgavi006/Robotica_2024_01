@@ -99,7 +99,9 @@ void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
 void reset(void);
 
 void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray);
-void readAcc(uint8_t* rawArray ,float* outData);
+void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray);
+void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp);
+
 
 void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType);
 void readData(uint8_t* rawArray ,float* outData, uint8_t dataType, uint8_t sensorCfg);

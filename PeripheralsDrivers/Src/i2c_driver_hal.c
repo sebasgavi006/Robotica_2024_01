@@ -9,7 +9,7 @@
 #include "i2c_driver_hal.h"
 
 /*
- * Recordar que se debe coonfigurar los pines parael I2C (SDA y SCL),
+ * Recordar que se debe coonfigurar los pines para el I2C (SDA y SCL),
  * para lo cual se necesita el módulo GPIO y los pines configurados
  * en el modo Alternate Function.
  * Admás, estos pines deben ser configurados como salidas open-drain
@@ -42,17 +42,21 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
 	 * bus I2C
 	 */
 
+
+	/*
+	 IMPORTANTE
+	 El I2Cx esta en el APB1 el cual no soporta más de 50MHz
+	  */
+
 	if(ptrHandlerI2C->mainClock < 50){
 		ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; // Borramos la configuración previa
 		ptrHandlerI2C->ptrI2Cx->CR2 |= (ptrHandlerI2C->mainClock << I2C_CR2_FREQ_Pos);
+		// Establecemos la frecuencia del CPU como la que usará el periférico
 	}
 	else{
 		ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; // Borramos la configuración previa
-		ptrHandlerI2C->ptrI2Cx->CR2 |= (50 << I2C_CR2_FREQ_Pos);
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_50_MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
 	}
-
-	//ptrHandlerI2C->ptrI2Cx->CR2 &= ~I2C_CR2_FREQ; //Borramos la configuración prestablecida
-	//ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_16_MHz_FOR_I2C << I2C_CR2_FREQ_Pos); // Ponemos la frecuencia del CPU como la que usará el periférico
 
 	/* 4. Configuramos el modo I2C en el que el sistema funciona.
 	 * En esta configuración se incluye también la velocidad del reloj y el tiempo
@@ -69,33 +73,27 @@ void i2c_Config(I2C_Handler_t *ptrHandlerI2C){
 	ptrHandlerI2C->ptrI2Cx->TRISE = 0;
 
 	if(ptrHandlerI2C->modeI2C == I2C_MODE_SM){
-		// Estamos en el modo "Standar" (SM Mode)
+		// Estamos en el modo "Standard" (SM Mode)
 		ptrHandlerI2C->ptrI2Cx->CCR &= ~I2C_CCR_FS;
 
 		// Configuramos el registro que se encarga de generar la señal de reloj
-		//ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_SM << I2C_CCR_CCR_Pos);
 		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_100KHz_16MHz << I2C_CCR_CCR_Pos);
 
 		// Configuramos el registro que controla el tiempo T-Rise máximo
-		//ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_SM;
-
 		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_SM_16MHZ;
 	}
 	else{
-		// Estamos en el modo "Fast" (SM Mode)
+		// Estamos en el modo "Fast" (FM Mode)
 		ptrHandlerI2C->ptrI2Cx->CCR |= I2C_CCR_FS;
 
 		// Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (ptrHandlerI2C->modeI2C_FM << I2C_CCR_CCR_Pos);
+		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_SPEED_400KHz_16MHz << I2C_CCR_CCR_Pos);
 
 		// Configuramos el registro que controla el tiempo T-Rise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= ptrHandlerI2C->maxI2C_FM;
+		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_FM_16MHz;
 	}
-
 	/* 5. Activamos el módulo I2C */
 	ptrHandlerI2C->ptrI2Cx->CR1 |= I2C_CR1_PE;
-
-
 } // Fin de la configuración del I2C
 
 
@@ -157,7 +155,6 @@ void i2c_StopTransaction(I2C_Handler_t *ptrHandlerI2C){
  * Indicación de ACK (Indicación para el Slave para iniciar)
  */
 void i2c_SendAck(I2C_Handler_t *ptrHandlerI2C){
-
 	/* Debemos escribir 1 en la posición ACK del CR1 */
 	ptrHandlerI2C->ptrI2Cx->CR1 |= I2C_CR1_ACK;
 }
@@ -167,7 +164,6 @@ void i2c_SendAck(I2C_Handler_t *ptrHandlerI2C){
  * Indicación de No-ACK (Indicación para el Slave para iniciar)
  */
 void i2c_SendNoAck(I2C_Handler_t *ptrHandlerI2C){
-
 	/* Debemos escribir 0 en la posición ACK del CR1 */
 	ptrHandlerI2C->ptrI2Cx->CR1 &= ~I2C_CR1_ACK;
 }
@@ -179,7 +175,6 @@ void i2c_SendNoAck(I2C_Handler_t *ptrHandlerI2C){
  * con el que nos comunicamos a través del I2C.
  */
 void i2c_SendSlaveAddressRW(I2C_Handler_t *ptrHandlerI2C, uint8_t slaveAddress, uint8_t readOrWrite){
-
 	/* 0. Definimos una variable auxiliar para leer los
 	 * registros para la secuencia de la bandera del ADDR
 	 */

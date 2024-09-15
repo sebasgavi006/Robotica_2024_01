@@ -17,20 +17,15 @@ enum
 	I2C_READ_DATA
 };
 
-
-/* Definición de constantes para la señal de reloj
- * que utilizará el periférico I2C
- * */
+/* Definición de constantes para la señal de reloj que utilizará el periférico I2C */
 enum
 {
 	MAIN_CLOCK_4_MHz_FOR_I2C	= 4,
 	MAIN_CLOCK_16_MHz_FOR_I2C	= 16,
 	MAIN_CLOCK_20_MHz_FOR_I2C	= 20,
-	MAIN_CLOCK_80_MHz_FOR_I2C	= 80,
+	MAIN_CLOCK_50_MHz_FOR_I2C	= 50,
 	MAIN_CLOCK_100_MHz_FOR_I2C	= 100
-
 };
-
 
 /* Constantes para los dos modos de operación del I2C */
 enum
@@ -39,30 +34,31 @@ enum
 	I2C_MODE_FM
 };
 
-
 /* Velocidades del periférico según el modo de opercación */
 enum
 {
+	/*----------------16 MHz-------------------*/
 	I2C_MODE_SM_SPEED_100KHz_16MHz	=	80,
 	I2C_MODE_FM_SPEED_400KHz_16MHz	=	14,
-	I2C_MODE_SM_SPEED_100KHz_80MHz	=	400,
-	I2C_MODE_FM_SPEED_400KHz_80MHz	=	67,
+
+	/*----------------80 MHz-------------------*/
+	I2C_MODE_SM_SPEED_100KHz_80MHz	=	200,
+	I2C_MODE_FM_SPEED_400KHz_80MHz	=	33,
+
+	/*----------------100 MHz-------------------*/
 	I2C_MODE_SM_SPEED_100KHz_100MHz	= 500,
 	I2C_MODE_FM_SPEED_400KHz_100MHz	= 83
 };
 
-
-
-
-/* Valores para el máximo tiempo del flanco de subida según
- * el modo de operación del I2C
- */
+/* Valores para el máximo tiempo del flanco de subida según el modo de operación del I2C */
 enum
 {
 	I2C_MAX_RISE_TIME_SM_16MHZ		= 17,
 	I2C_MAX_RISE_TIME_FM_16MHz		= 6,
+
 	I2C_MAX_RISE_TIME_SM_80MHZ		= 81,
 	I2C_MAX_RISE_TIME_FM_80MHz		= 25,
+
 	I2C_MAX_RISE_TIME_SM_100MHZ		= 101,
 	I2C_MAX_RISE_TIME_FM_100MHz		= 31
 };
@@ -76,10 +72,6 @@ typedef struct
 	uint8_t			modeI2C;
 	uint8_t			dataI2C;
 	uint8_t			mainClock;
-	uint8_t 		modeI2C_SM;
-	uint16_t		modeI2C_FM;
-	uint8_t 		maxI2C_SM;
-	uint8_t			maxI2C_FM;
 } I2C_Handler_t;
 
 

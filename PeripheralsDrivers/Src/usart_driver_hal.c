@@ -6,8 +6,10 @@
  */
 
 #include <stdint.h>
+#include <math.h>
 #include "stm32f4xx.h"
 #include "usart_driver_hal.h"
+#include "pll_driver_hal.h"
 
 rxDataUsart auxRxData = {0}; // Arreglo que guarda los valores de los datos recibidos en cada interrupción de los 3 USART
 
@@ -49,8 +51,6 @@ void usart_Config(USART_Handler_t *ptrUsartHandler){
 	ptrUsartHandler->ptrUSARTx->CR1 = 0;
 	ptrUsartHandler->ptrUSARTx->CR2 = 0;
 
-	// Limpiamos el registro DR
-	//ptrUsartHandler->ptrUSARTx->DR = 0;
 
 	// 2.2 Configuracion del Parity:
 	usart_config_parity(ptrUsartHandler);
@@ -84,16 +84,19 @@ static void usart_enable_clock_peripheral(USART_Handler_t *ptrUsartHandler){
 	/* 1. Activamos la señal de reloj que viene desde el BUS al que pertenece el periferico */
     /* 1.1 Configuramos el USART1 */
 	if(ptrUsartHandler->ptrUSARTx == USART1){
+		RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN;
 		RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 	}
 	
     /* 1.2 Configuramos el USART2 */
 	else if(ptrUsartHandler->ptrUSARTx == USART2){
+		RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN;
 		RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 	}
     
     /* 1.3 Configuramos el USART6 */
 	else if(ptrUsartHandler->ptrUSARTx == USART6){
+		RCC->APB2ENR &= ~RCC_APB2ENR_USART6EN;
 		RCC->APB2ENR |= RCC_APB2ENR_USART6EN;
 	}
 	else{
@@ -202,6 +205,13 @@ static void usart_config_stopbits(USART_Handler_t *ptrUsartHandler){
  * señal de reloj del microcontrolador)
  */
 static void usart_config_baudrate(USART_Handler_t *ptrUsartHandler){
+	//Obtenes la frecuencia actual desde el PLL, si estamos en usart2 toca dividirla entre 2
+	uint16_t freQClock = getFreqPLL();
+
+	if (ptrUsartHandler->ptrUSARTx == USART2 && freQClock > 50){
+		freQClock = getFreqPLL()/2;
+	}
+
 	// Caso para configurar cuando se trabaja con el Cristal Interno
 	switch(ptrUsartHandler->USART_Config.baudrate){
 		case USART_BAUDRATE_9600:
@@ -210,7 +220,12 @@ static void usart_config_baudrate(USART_Handler_t *ptrUsartHandler){
 		// Mantiza = 104 = 0x0680, fraction = 16 * 0.1875 = 3 = 0x0003
 		// Valor a cargar 0x0683
 		// Configurando el Baudrate generator para una velocidad de 9600bps
-			ptrUsartHandler->ptrUSARTx->BRR = 0x0683;
+//			ptrUsartHandler->ptrUSARTx->BRR = 0x0683;
+			float div = (freQClock * 1E6) / (16 * 9600);
+			uint16_t mantissa = (int) div;
+			uint16_t fraction = (int) round((div - mantissa) * 16);
+			uint16_t result = mantissa << 4 | fraction;
+			ptrUsartHandler->ptrUSARTx->BRR = result;
 			break;
 		}
 		case USART_BAUDRATE_19200:
@@ -222,27 +237,42 @@ static void usart_config_baudrate(USART_Handler_t *ptrUsartHandler){
 			ptrUsartHandler->ptrUSARTx->BRR = 0x0341;
 			break;
 		}
-		case USART_BAUDRATE_19200_100MHz:
+
+
+		case USART_BAUDRATE_80MHz_19200:
+		{
+			// Escriba acá su código y los comentarios que faltan
+			// El valor a cargar es 260.416666667 -> Mantiza = 260, fraction = 0.416666667
+			// Mantiza = 260 = 104, fraction = 16 * 0.416666667 = 6
+			// Valor a cargar 0x02B6
+			ptrUsartHandler->ptrUSARTx->BRR = 0x1046;
+			break;
+		}
+
+
+
+
+
+
+		case USART_BAUDRATE_100MHz_19200:
 		{
 			ptrUsartHandler->ptrUSARTx->BRR = 0x1458;
 			break;
 		}
+
 		case USART_BAUDRATE_115200:
 		{
 		// El valor a cargar es 8.6875 -> Mantiza = 8,fraction = 0.6875
 		// Mantiza = 8 => 0x0080 , fraction = 16 * 0.6875 = 11 => 0x000B
 		// Valor a cargar 0x008B
 		// Configurando el Baudrate generator para una velocidad de 115200bps
-			ptrUsartHandler->ptrUSARTx->BRR = 0x008B;
-			break;
-		}
-		case USART_BAUDRATE_230400:
-		{
-		// El valor a cargar es 4.3125 -> Mantiza = 4,fraction = 0.3125
-		// Mantiza = 4 => 0x0040, fraction = 16 * 0.3125 = 5 => 0x0005
-		// Valor a cargar 0x0045
-		// Configurando el Baudrate generator para una velocidad de 230400bps
-			ptrUsartHandler->ptrUSARTx->BRR = 0x0045;
+//			ptrUsartHandler->ptrUSARTx->BRR = 0x008B;
+
+			float div = (freQClock * 1E6) / (16 * 115200);
+			uint16_t mantissa = (int) div;
+			uint16_t fraction = (int) round((div - mantissa) * 16);
+			uint16_t result = mantissa << 4 | fraction;
+			ptrUsartHandler->ptrUSARTx->BRR = result;
 			break;
 		}
 
