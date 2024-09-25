@@ -10,20 +10,85 @@
 #include "math.h"
 
 
+// Variable global para la escala (LSB/g)
+float accelScale = 16384.0f;  // Valor inicial para ±2g
+float gyroScale = 131.0f;  // Valor inicial para ±250 deg/s
+
+
+
+
 void imuBegin(I2C_Handler_t* ptrHandlerI2C){
 	i2c_WriteSingleRegister(ptrHandlerI2C, PWR_MGMT_1, 0x0);
 }
 
+uint8_t imuWhoAmI(I2C_Handler_t* ptrHandlerI2C){
+
+	uint8_t WhoAmI = i2c_ReadSingleRegister(ptrHandlerI2C,WHO_AM_I);
+
+	return WhoAmI;
+}
+
 void setAccelRange(I2C_Handler_t* ptrHandlerI2C, eAccelRange_t Range){
-	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_ACCEL_CONFIG_REG, Range);
+//	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_ACCEL_CONFIG_REG, Range);
+	uint8_t regValue = i2c_ReadSingleRegister(ptrHandlerI2C, MPU6050_ACCEL_CONFIG_REG);
+
+	//limpiamos SOLO los bits AFS_SEL[1:0] que son los bits 3 y 4 del registro
+	regValue &= ~0x18;//mascara 0b11000
+	//establecemos el nuevo rango
+	regValue |= Range;
+	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_ACCEL_CONFIG_REG, regValue);
+
+	// Configurar el valor de escala basado en el rango seleccionado
+    switch (Range) {
+        case ACCEL_RANGE_2_G:
+            accelScale = 16384.0f;  // LSB/g para ±2g
+            break;
+        case ACCEL_RANGE_4_G:
+            accelScale = 8192.0f;   // LSB/g para ±4g
+            break;
+        case ACCEL_RANGE_8_G:
+            accelScale = 4096.0f;   // LSB/g para ±8g
+            break;
+        case ACCEL_RANGE_16_G:
+            accelScale = 2048.0f;   // LSB/g para ±16g
+            break;
+        default:
+            accelScale = 16384.0f;  // Valor por defecto en caso de error
+            break;
+    }
+
+
+
+
 }
 
-void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange){
-	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_GYRO_CONFIG_REG, newRange);
+void setGyroRange(I2C_Handler_t* ptrHandlerI2C, eGyroRange_t Range){
+//	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_GYRO_CONFIG_REG, newRange);
+	uint8_t regValue = i2c_ReadSingleRegister(ptrHandlerI2C, MPU6050_GYRO_CONFIG_REG);
+	//limpiamos SOLO los bits AFS_SEL[1:0] que son los bits 3 y 4 del registro
+	regValue &= ~0x18;//mascara 0b11000
+	//establecemos el nuevo rango
+	regValue |= Range;
+	i2c_WriteSingleRegister(ptrHandlerI2C, MPU6050_GYRO_CONFIG_REG, regValue);
+	// Configurar el valor de escala basado en el rango seleccionado
+    switch (Range) {
+        case GYRO_RANGE_250_DEG:
+        	gyroScale = 131.0f;  // LSB/g para ±2g
+            break;
+        case GYRO_RANGE_500_DEG:
+        	gyroScale = 65.5f;   // LSB/g para ±4g
+            break;
+        case GYRO_RANGE_1000_DEG:
+        	gyroScale = 32.8f;   // LSB/g para ±8g
+            break;
+        case GYRO_RANGE_2000_DEG:
+        	gyroScale = 16.4f;   // LSB/g para ±16g
+            break;
+        default:
+        	gyroScale = 131.0f;  // Valor por defecto en caso de error
+            break;
+    }
 }
-
-
-
 
 void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
 	uint8_t rawData[6] = {0};
@@ -32,9 +97,9 @@ void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
     int16_t accelY = (int16_t)((rawData[2] << 8) | rawData[3]);
     int16_t accelZ = (int16_t)((rawData[4] << 8) | rawData[5]);
 
-    dataArray[0] = accelX / 16384.0f;
-    dataArray[1] = accelY / 16384.0f;
-    dataArray[2] = accelZ / 16384.0f;
+    dataArray[0] = accelX / accelScale;
+    dataArray[1] = accelY / accelScale;
+    dataArray[2] = accelZ / accelScale;
 }
 
 void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
@@ -44,9 +109,9 @@ void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
     int16_t gyroY = (int16_t)((rawData[2] << 8) | rawData[3]);
     int16_t gyroZ = (int16_t)((rawData[4] << 8) | rawData[5]);
 
-    dataArray[0] = gyroX / 131.0f;
-    dataArray[1] = gyroY / 131.0f;
-    dataArray[2] = gyroZ / 131.0f;
+    dataArray[0] = gyroX / gyroScale;
+    dataArray[1] = gyroY / gyroScale;
+    dataArray[2] = gyroZ / gyroScale;
 }
 
 void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp){
@@ -62,75 +127,9 @@ void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp){
 
 
 
-
-void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType){
-
-	uint8_t rawData[6] = {0};
-
-
-	switch (dataType) {
-		case dataTypeAccel:
-			i2c_ReadRegisters(ptrHandlerI2C, MPU6050_ACCEL_XOUT_H_REG, 6, rawData);
-			rawArray[0] = ((int16_t)rawData[0] << 8) | rawData[1];
-			rawArray[1] = ((int16_t)rawData[2] << 8) | rawData[3];
-			rawArray[2] = ((int16_t)rawData[4] << 8) | rawData[5];
-
-			break;
-		case dataTypeGyro:
-			i2c_ReadRegisters(ptrHandlerI2C, MPU6050_GYRO_XOUT_H_REG, 6, rawData);
-			rawArray[0] = ((int16_t)rawData[0] << 8) | rawData[1];
-			rawArray[1] = ((int16_t)rawData[2] << 8) | rawData[3];
-			rawArray[2] = ((int16_t)rawData[4] << 8) | rawData[5];
-
-			break;
-		case dataTypeTemp:
-			i2c_ReadRegisters(ptrHandlerI2C, MPU6050_TEMP_XOUT_H_REG, 2, rawData);
-			rawArray[0] = ((int16_t)rawData[0] << 8) | rawData[1];
-
-			break;
-
-		default:
-			break;
-	}
-}
-
-
-
 void readData(uint8_t* rawArray ,float* outData, uint8_t dataType, uint8_t sensorCfg){
 
-
-	if(dataType == dataTypeAccel){
-		switch (sensorCfg) {
-			case ACCEL_RANGE_2_G:
-				outData[0] = rawArray[0] / 16384;
-				outData[1] = rawArray[1] / 16384;
-				outData[2] = rawArray[2] / 16384;
-				break;
-			case ACCEL_RANGE_4_G:
-				outData[0] = rawArray[0] / 8192;
-				outData[1] = rawArray[1] / 8192;
-				outData[2] = rawArray[2] / 8192;
-
-							break;
-			case ACCEL_RANGE_8_G:
-				outData[0] = rawArray[0] / 4096;
-				outData[1] = rawArray[1] / 4096;
-				outData[2] = rawArray[2] / 4096;
-
-							break;
-			case ACCEL_RANGE_16_G:
-				outData[0] = rawArray[0] / 2048;
-				outData[1] = rawArray[1] / 2048;
-				outData[2] = rawArray[2] / 2048;
-
-							break;
-			default:
-				break;
-		}
-
-	}
-
-	else if(dataType == dataTypeGyro){
+	if(dataType == dataTypeGyro){
 			switch (sensorCfg) {
 				case GYRO_RANGE_250_DEG:
 					outData[0] = rawArray[0] / 131;

@@ -56,6 +56,7 @@ typedef enum {
 }eGyroRange_t;
 
 
+
 enum {
   BAND_260_HZ, ///< Docs imply this disables the filter
   BAND_184_HZ, ///< 184 Hz
@@ -83,17 +84,15 @@ enum {
 };
 
 void imuBegin(I2C_Handler_t* ptrHandlerI2C);
+uint8_t imuWhoAmI(I2C_Handler_t* ptrHandlerI2C);
 void calibration(float* rateCalibrationArray);
-void readAccelData(float* accelData);
-void readGyroData(float* gyroData);
-void readTempData(float* tempData);
 float calculateAngle(float* anglesData,  float* accelData);
 
 
 //accel_range_t getAccelRange(void);
 void setAccelRange(I2C_Handler_t* ptrHandlerI2C, eAccelRange_t Range);
 //gyro_range_t getGyroRange(void);
-void setGyroRange(I2C_Handler_t* ptrHandlerI2C, uint16_t newRange);
+void setGyroRange(I2C_Handler_t* ptrHandlerI2C, eGyroRange_t Range);
 
 
 void reset(void);
