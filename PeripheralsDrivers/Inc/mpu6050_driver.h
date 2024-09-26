@@ -57,15 +57,16 @@ typedef enum {
 
 
 
-enum {
-  BAND_260_HZ, ///< Docs imply this disables the filter
-  BAND_184_HZ, ///< 184 Hz
-  BAND_94_HZ,  ///< 94 Hz
-  BAND_44_HZ,  ///< 44 Hz
-  BAND_21_HZ,  ///< 21 Hz
-  BAND_10_HZ,  ///< 10 Hz
-  BAND_5_HZ,   ///< 5 Hz
-};
+typedef enum {
+    DLPF_260HZ = 0x00, // BW: 260Hz, Delay: 0ms
+    DLPF_184HZ = 0x01, // BW: 184Hz, Delay: 2.0ms
+    DLPF_94HZ  = 0x02, // BW: 94Hz,  Delay: 3.0ms
+    DLPF_44HZ  = 0x03, // BW: 44Hz,  Delay: 4.9ms
+    DLPF_21HZ  = 0x04, // BW: 21Hz,  Delay: 8.5ms
+    DLPF_10HZ  = 0x05, // BW: 10Hz,  Delay: 13.8ms
+    DLPF_5HZ   = 0x06, // BW: 5Hz,   Delay: 19.0ms
+    DLPF_RESERVED = 0x07  // Reservado, no usar
+} eDLPFConfig_t;
 
 enum {
   byte_1 = 1,  ///< +/- 250 deg/s (default value)
@@ -93,6 +94,7 @@ float calculateAngle(float* anglesData,  float* accelData);
 void setAccelRange(I2C_Handler_t* ptrHandlerI2C, eAccelRange_t Range);
 //gyro_range_t getGyroRange(void);
 void setGyroRange(I2C_Handler_t* ptrHandlerI2C, eGyroRange_t Range);
+void setAccelDLPF(I2C_Handler_t* ptrHandlerI2C, eDLPFConfig_t dlpfCfg) ;
 
 
 void reset(void);
@@ -100,6 +102,8 @@ void reset(void);
 void readAccel(I2C_Handler_t* ptrHandlerI2C, float* dataArray);
 void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray);
 void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp);
+
+void gyroStaticCalibration(I2C_Handler_t* ptrHandlerI2C, int numReadings);
 
 
 void rawData(I2C_Handler_t* ptrHandlerI2C, uint8_t* rawArray , uint8_t dataType);

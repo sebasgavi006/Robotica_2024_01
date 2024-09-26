@@ -84,9 +84,29 @@ GPIO_Handler_t imuSDA = {0};
 GPIO_Handler_t imuSCL = {0};
 
 char bufferData[64] = "Accel MPU6050 testing...";
+
 float accelData[3] = {0};
+
+
 float gyroData[3] = {0};
+float calibGyroData[3] = {0};
+
+int nReadings = 300;
+extern float offsetGyroData[3];
+
 float temp = 0;
+
+
+float previousGyroZ = 0.0;
+float currentGyroZ = 0.0;
+
+
+float yaw_gyro = 0.0;       // Ángulo calculado con el acelerómetro
+float dt = 0.01;           // Intervalo de tiempo (10 ms)
+
+
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -94,6 +114,7 @@ float temp = 0;
 // Funciones privadas
 void initSystem(void);
 void parseCommands(char  *ptrbufferReception);
+void yawIntegral(void);
 
 
 /* ===== Función principal del programa ===== */
@@ -121,15 +142,23 @@ int main(void){
 
 	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
 	setGyroRange(&imuHandler, GYRO_RANGE_250_DEG);
+	setAccelDLPF(&imuHandler, DLPF_260HZ);
+
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
 	usart_WriteMsg(&usart2Comm, bufferMsg);
 
-	usart_WriteMsg(&usart2Comm, "AccelZ\n");
+	usart_WriteMsg(&usart2Comm, "Please dont move the sensor. Calibration Starting...\n");
+	sprintf(bufferMsg,"offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
+	usart_WriteMsg(&usart2Comm, bufferMsg);
+	gyroStaticCalibration(&imuHandler,nReadings);
+	sprintf(bufferMsg,"offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
+	usart_WriteMsg(&usart2Comm, bufferMsg);
+	usart_WriteMsg(&usart2Comm, "Calib finished\n");
 
 	/* Loop forever */
 	while (1) {
 
-		counterTimer++;
+//		counterTimer++;
 
 		if (counterBlinky == 4){
 			gpio_TogglePin(&stateLed);
@@ -137,26 +166,9 @@ int main(void){
 		}
 
 		if (flagTimer) {
-
-			//usart_WriteMsg(&usart2Comm, "Accelerometer Data\n");
-
-			readAccel(&imuHandler, accelData);
-			readGyro(&imuHandler, gyroData);
-			readTemp(&imuHandler, &temp);
-
-//			sprintf(bufferData, "%.2f,%.2f,%.2f \n",accelData[0], accelData[1] ,accelData[2]);
-//			usart_WriteMsg(&usart2Comm, bufferData);
-
-			sprintf(bufferData, "%.2f,%.2f,%.2f \n",gyroData[0], gyroData[1] ,gyroData[2]);
-			usart_WriteMsg(&usart2Comm, bufferData);
-
-//			sprintf(bufferData, "Temp = %.2f \n", temp);
-//			usart_WriteMsg(&usart2Comm, bufferData);
-
+			yawIntegral();
 			flagTimer = 0;
 		}
-
-//	begin(&imuHandler);
 
 	}
 	return 0;
@@ -260,6 +272,8 @@ void initSystem(void){
 }
 
 
+
+
 /*
  * Función para los comandos
  */
@@ -297,6 +311,17 @@ void parseCommands(char  *ptrbufferReception){
 
 
 }
+
+
+void yawIntegral(void){
+	readGyro(&imuHandler, gyroData);
+	yaw_gyro += (gyroData[2] * dt)* (180.0/M_PI);
+//	sprintf(bufferMsg,"gyro values  %.2f,%.2f,%.2f\n",gyroData[0],gyroData[1],gyroData[2]);
+	sprintf(bufferMsg,"rate is  %.2f \t Yaw  %.2f\n",gyroData[2],yaw_gyro);
+	usart_WriteMsg(&usart2Comm, bufferMsg);
+}
+
+
 
 /* Callback de Timer 3 para el Blinky */
 void Timer2_Callback(void){

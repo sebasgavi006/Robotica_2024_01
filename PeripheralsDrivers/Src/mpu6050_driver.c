@@ -13,6 +13,8 @@
 // Variable global para la escala (LSB/g)
 float accelScale = 16384.0f;  // Valor inicial para ±2g
 float gyroScale = 131.0f;  // Valor inicial para ±250 deg/s
+float offsetGyroData[3] = {0};
+int calibFlag=0;
 
 
 
@@ -112,6 +114,13 @@ void readGyro(I2C_Handler_t* ptrHandlerI2C, float* dataArray){
     dataArray[0] = gyroX / gyroScale;
     dataArray[1] = gyroY / gyroScale;
     dataArray[2] = gyroZ / gyroScale;
+
+    if (calibFlag) {
+    	dataArray[0] = dataArray[0] - offsetGyroData[0];
+    	dataArray[1] = dataArray[1] - offsetGyroData[1];
+    	dataArray[2] = dataArray[2] - offsetGyroData[2];
+
+	}
 }
 
 void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp){
@@ -122,6 +131,27 @@ void readTemp(I2C_Handler_t* ptrHandlerI2C, float* temp){
     *temp = (tempRaw / 340.0f) + 36.53f;
 }
 
+
+void gyroStaticCalibration(I2C_Handler_t* ptrHandlerI2C, int numReadings){
+	float sumX = 0;
+	float sumY = 0;
+	float sumZ = 0;
+	float auxGyroData[3] = {0};
+
+	for (int i = 0; i < numReadings; ++i) {
+
+		readGyro(ptrHandlerI2C,auxGyroData);
+		sumX += auxGyroData[0];
+		sumY += auxGyroData[1];
+		sumZ += auxGyroData[2];
+	}
+
+	offsetGyroData[0] = sumX /numReadings;
+	offsetGyroData[1] = sumY /numReadings;
+	offsetGyroData[2] = sumZ /numReadings;
+	calibFlag = 1;
+
+}
 
 
 
@@ -168,4 +198,17 @@ float calculateAngle(float* anglesData, float* accelData){
   anglesData[1]   = atan(-accelData[0] / sqrt(accelData[1]*accelData[1] + accelData[2]*accelData[2])) * 1/(M_PI/180);  //anglePitch
   anglesData[2]   = atan(sqrt(accelData[0]*accelData[0] + accelData[1]*accelData[1]) / accelData[2] ) * 1/(M_PI/180);  //angleYaw
   return *anglesData;
+}
+
+void setAccelDLPF(I2C_Handler_t* ptrHandlerI2C, eDLPFConfig_t dlpfCfg) {
+    uint8_t regValue = i2c_ReadSingleRegister(ptrHandlerI2C, 0x1A);
+
+    // Limpiar los bits correspondientes al DLPF_CFG [2:0]
+    regValue &= ~0x07; // Mascara 0b00000111
+
+    // Establecer el nuevo valor para DLPF_CFG
+    regValue |= dlpfCfg;
+
+    // Escribir el valor configurado de nuevo en el registro CONFIG
+    i2c_WriteSingleRegister(ptrHandlerI2C, 0x1A, regValue);
 }
