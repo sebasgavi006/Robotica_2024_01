@@ -35,24 +35,41 @@
 
 
 // Se define un pin para el Blinky
-GPIO_Handler_t stateLed = {0}; // PinA5PinA5
+GPIO_Handler_t stateLed = {0}; // PinA5
+GPIO_Handler_t stateLedBoard = {0}; // PinC5
 
+// Pines para el motor Derecho
+GPIO_Handler_t GPIO_Enb_R = {0};
+GPIO_Handler_t GPIO_Dir_R = {0};
+GPIO_Handler_t GPIO_PWM_R = {0};
 
-// Handler Timers
-Timer_Handler_t Tim_Blinky = {0};
-Timer_Handler_t Tim_Micros = {0};
+// Pines para el motor Izquierdo
+GPIO_Handler_t GPIO_Enb_L = {0};
+GPIO_Handler_t GPIO_Dir_L = {0};
+GPIO_Handler_t GPIO_PWM_L = {0};
 
+// Pines para interrupciones EXTI
+GPIO_Handler_t GPIO_Exti_R = {0};
+GPIO_Handler_t GPIO_Exti_L = {0};
 
 // Handler para el PLL
 PLL_Handler_t pllHandler = {0};
 
-// Handler Systick
+// Handler PWM motores
+PWM_Handler_t PWM_R = {0};
+PWM_Handler_t PWM_L = {0};
+
+// Estructura para la configuración de los EXTI
+EXTI_Config_t Exti_R = {0};
+EXTI_Config_t Exti_L = {0};
 
 
 /*
  * Variables globales
  */
 uint32_t SystemCoreClock = 100E6;
+uint16_t counter_R = 0;
+uint16_t counter_L = 0;
 
 //USART
 GPIO_Handler_t handlerPinTX		= {0};
@@ -72,11 +89,38 @@ float firstParameter = 0;
 float secondParameter = 0;
 char lastString[64] = {0};
 
+// Contadores ruedas
 // Variables globales para el funcionamiento del robot
-
-uint32_t counterTimer = 0;
-uint8_t counterBlinky = 0;
+uint8_t defaultSpeed = 0;
+uint8_t counterPercDuty = 0;
+uint8_t flagEncR = 0;
+uint8_t flagEncL = 0;
+uint8_t flagStop = 0;
+uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
+
+
+float diameterWheel = 51.78; // Diámetro en mm
+
+float percDutyR = 0;
+float percDutyL = 0;
+
+// Variables globales del PID que va a solucionar los problemas capilares de Nerio
+
+// Constantes de Tuning del PID
+float kp, ki, kd = 0;
+uint32_t currTime, prevTime = 0;
+float prevError, devError, integralError = 0;
+float deltaError, deltaTime = 0;
+float u_PID = 0;
+
+
+// Contadores
+uint16_t counterBlinky = 0;
+uint16_t counterIMU = 0;
+uint32_t counterMicros = 0;
+
+uint8_t periodBlinky = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 I2C_Handler_t imuHandler = {0};
@@ -102,18 +146,23 @@ float currentGyroZ = 0.0;
 
 
 float yaw_gyro = 0.0;       // Ángulo calculado con el acelerómetro
-float dt = 0.01;           // Intervalo de tiempo (10 ms)
-
-
-
+float dt = 0.2;           // Intervalo de tiempo (10 ms)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 // Funciones privadas
 void initSystem(void);
 void parseCommands(char  *ptrbufferReception);
+void forwardMove(float percDutyL, float percDutyR);
+void backwardMove(float percDutyL, float percDutyR);
+void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty);
+void turnOff(void);
+void turnOn(void);
+void PID(uint16_t target, uint16_t measure);
+
+
+void manageCounters(void);
 void yawIntegral(void);
 
 
@@ -130,6 +179,18 @@ int main(void){
 //	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
 
 	initSystem();
+	turnOff();
+	sprintf(bufferMsg, "Saludos terrícolas, soy OPPY \n");
+	usart_WriteMsg(&usart1Comm, bufferMsg);
+	counterPercDuty = 0;
+	percDutyR = 0;
+	percDutyL = 0;
+	flagEncR = 0;
+	flagEncL = 0;
+	flagPeriod = 0;
+	flagTimer = 0;
+
+
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	delay_ms(1);
 	imuBegin(&imuHandler);
@@ -141,7 +202,7 @@ int main(void){
 	usart_WriteMsg(&usart2Comm, bufferData);
 
 	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
-	setGyroRange(&imuHandler, GYRO_RANGE_250_DEG);
+	setGyroRange(&imuHandler, GYRO_RANGE_500_DEG);
 	setAccelDLPF(&imuHandler, DLPF_260HZ);
 
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
@@ -157,17 +218,11 @@ int main(void){
 
 	/* Loop forever */
 	while (1) {
+		manageCounters();
 
-//		counterTimer++;
-
-		if (counterBlinky == 4){
-			gpio_TogglePin(&stateLed);
-			counterBlinky = 0;
-		}
-
-		if (flagTimer) {
+		if (counterIMU > 20E3) {
 			yawIntegral();
-			flagTimer = 0;
+			counterIMU = 0;
 		}
 
 	}
@@ -193,15 +248,89 @@ void initSystem(void){
 	stateLed.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
 	gpio_Config(&stateLed);
 
+	/* Configurando el pin para el Blinky */
+	stateLedBoard.pGPIOx							= GPIOC;
+	stateLedBoard.pinConfig.GPIO_PinNumber			= PIN_5;	// PinA5
+	stateLedBoard.pinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	stateLedBoard.pinConfig.GPIO_PinOutputType		= GPIO_OTYPE_PUSHPULL;
+	stateLedBoard.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_MEDIUM;
+	stateLedBoard.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	gpio_Config(&stateLedBoard);
 
 
+	// 2. ===== GPIOs =====
+	/* Configurando el pin para el Enable del puente H */
+	GPIO_Enb_R.pGPIOx							= GPIOC;
+	GPIO_Enb_R.pinConfig.GPIO_PinNumber			= PIN_10;
+	GPIO_Enb_R.pinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	GPIO_Enb_R.pinConfig.GPIO_PinOutputType		= GPIO_OTYPE_PUSHPULL;
+	GPIO_Enb_R.pinConfig.GPIO_PinOutputSpeed	= GPIO_OSPEED_FAST;
+	GPIO_Enb_R.pinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	gpio_Config(&GPIO_Enb_R);
+
+	/* Configurando el pin para definir la dirección del motor DERECHO */
+	GPIO_Dir_R.pGPIOx							= GPIOC;
+	GPIO_Dir_R.pinConfig.GPIO_PinNumber			= PIN_12;
+	GPIO_Dir_R.pinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	GPIO_Dir_R.pinConfig.GPIO_PinOutputType		= GPIO_OTYPE_PUSHPULL;
+	GPIO_Dir_R.pinConfig.GPIO_PinOutputSpeed	= GPIO_OSPEED_FAST;
+	GPIO_Dir_R.pinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	gpio_Config(&GPIO_Dir_R);
+
+	/* Pin de salida del PWM para el motor derecho. Usa el Timer5 */
+	GPIO_PWM_R.pGPIOx								= GPIOA;
+	GPIO_PWM_R.pinConfig.GPIO_PinNumber				= PIN_0;
+	GPIO_PWM_R.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+	GPIO_PWM_R.pinConfig.GPIO_PinAltFunMode			= AF2;
+	GPIO_PWM_R.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	GPIO_PWM_R.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+	gpio_Config(&GPIO_PWM_R);
+
+	/* Configurando el pin para el Enable del puente H */
+	GPIO_Enb_L.pGPIOx							= GPIOC;
+	GPIO_Enb_L.pinConfig.GPIO_PinNumber			= PIN_11;
+	GPIO_Enb_L.pinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	GPIO_Enb_L.pinConfig.GPIO_PinOutputType		= GPIO_OTYPE_PUSHPULL;
+	GPIO_Enb_L.pinConfig.GPIO_PinOutputSpeed	= GPIO_OSPEED_FAST;
+	GPIO_Enb_L.pinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	gpio_Config(&GPIO_Enb_L);
+
+	/* Configurando el pin para definir la dirección del motor IZQUIERDO */
+	GPIO_Dir_L.pGPIOx							= GPIOD;
+	GPIO_Dir_L.pinConfig.GPIO_PinNumber			= PIN_2;
+	GPIO_Dir_L.pinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	GPIO_Dir_L.pinConfig.GPIO_PinOutputType		= GPIO_OTYPE_PUSHPULL;
+	GPIO_Dir_L.pinConfig.GPIO_PinOutputSpeed	= GPIO_OSPEED_FAST;
+	GPIO_Dir_L.pinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	gpio_Config(&GPIO_Dir_L);
+
+	/* Pin de salida del PWM para el motor izquierdo. Usa el Timer5 */
+	GPIO_PWM_L.pGPIOx								= GPIOA;
+	GPIO_PWM_L.pinConfig.GPIO_PinNumber				= PIN_1;
+	GPIO_PWM_L.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+	GPIO_PWM_L.pinConfig.GPIO_PinAltFunMode			= AF2;
+	GPIO_PWM_L.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	GPIO_PWM_L.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+	gpio_Config(&GPIO_PWM_L);
+
+	/* Pin del Encoder Derecho */
+	GPIO_Exti_R.pGPIOx							= GPIOC;
+	GPIO_Exti_R.pinConfig.GPIO_PinNumber		= PIN_1;
+	GPIO_Exti_R.pinConfig.GPIO_PinMode			= GPIO_MODE_IN;
+	gpio_Config(&GPIO_Exti_R);
+
+	/* Pin del Encoder Izquierdo */
+	GPIO_Exti_L.pGPIOx							= GPIOC;
+	GPIO_Exti_L.pinConfig.GPIO_PinNumber		= PIN_3;
+	GPIO_Exti_L.pinConfig.GPIO_PinMode			= GPIO_MODE_IN;
+	gpio_Config(&GPIO_Exti_L);
 
 
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky */
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100E3;	// Genera incrementos de 1 ms. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 500;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (1 s)
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100;	// Genera incrementos de 1 ms. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 10;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500ms)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
@@ -239,6 +368,24 @@ void initSystem(void){
 	usart_Config(&usart2Comm);
 
 
+	// 3. ===== PWM =====
+	/* Configurando el PWM para el motor DERECHO */
+	PWM_R.ptrTIMx					= TIM5; // Timer5 usado para el PWM
+	PWM_R.config.channel			= PWM_CHANNEL_1;
+	PWM_R.config.prescaler			= 50E2; 	// 0.05 ms
+	PWM_R.config.periodo			= 1000;		// 50 ms -> Frec. de 20 Hz
+	PWM_R.config.percDuty			= 0;
+	pwm_Config(&PWM_R);
+
+	/* Configurando el PWM para el motor IZQUIERDO */
+	PWM_L.ptrTIMx					= TIM5; // Timer5 usado para el PWM
+	PWM_L.config.channel			= PWM_CHANNEL_2;
+	PWM_L.config.prescaler			= 50E2; 	// 0.05 ms
+	PWM_L.config.periodo			= 1000;		// 50 ms -> Frec. de 20 Hz
+	PWM_L.config.percDuty			= 0;
+	pwm_Config(&PWM_L);
+
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	imuSDA.pGPIOx								= GPIOC;
 	imuSDA.pinConfig.GPIO_PinNumber				= PIN_9;
@@ -272,50 +419,35 @@ void initSystem(void){
 }
 
 
+void manageCounters(void){
+	if (counterBlinky > 50E3){//cada 500 ms revisamos los contadores
 
+		gpio_TogglePin(&stateLed);//cambiamos el estado del led
 
-/*
- * Función para los comandos
- */
-void parseCommands(char  *ptrbufferReception){
+		if (gpio_ReadPin(&stateLed)) {//si el pin esta en alto contamos
+			if (periodBlinky > 10) {//contamos cada ciclo de encendido-apagado de led
+				periodBlinky = 0;//reiniciamos la variable
+			}
+			periodBlinky++;//aumentamos el contador del periodo
+		}
 
-	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
-	//Comando para solicitar ayuda
-	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart2Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart2Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "1) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
-
-		usart_WriteMsg(&usart2Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "3) Rot 0:left 1:right  ; #turns  \" Rot # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
-
-		usart_WriteMsg(&usart2Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "1) Ajuste Cuentas (#) deltaDuty (float) @ \n");
-
-
-		usart_WriteMsg(&usart2Comm, "6) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart2Comm, "7) Resume \" Resume @\" \n");
+		counterBlinky = 0;
 
 	}
-
-
-	else if (strcmp(cmd, "reset") == 0) {
-		usart_WriteMsg(&usart2Comm, "PWR_MGMT_1 reset \n");
-
-	}
-
-	else{
-		usart_WriteMsg(&usart2Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
-	}
-
-
 }
 
 
 void yawIntegral(void){
 	readGyro(&imuHandler, gyroData);
 	yaw_gyro += (gyroData[2] * dt)* (180.0/M_PI);
+
+    // Corrección de los límites de yaw_gyro
+//    if (yaw_gyro > 360.0) {
+//        yaw_gyro -= 360.0;
+//    } else if (yaw_gyro < 0.0) {
+//        yaw_gyro += 360.0;
+//    }
+
 //	sprintf(bufferMsg,"gyro values  %.2f,%.2f,%.2f\n",gyroData[0],gyroData[1],gyroData[2]);
 	sprintf(bufferMsg,"rate is  %.2f \t Yaw  %.2f\n",gyroData[2],yaw_gyro);
 	usart_WriteMsg(&usart2Comm, bufferMsg);
@@ -325,10 +457,11 @@ void yawIntegral(void){
 
 /* Callback de Timer 3 para el Blinky */
 void Timer2_Callback(void){
+//	gpio_TogglePin(&stateLed);
 	counterBlinky++;
-	counterTimer = 0;
-	// La bandera se levanta cada 500 ms
-	flagTimer = 1;
+	counterIMU++;
+	counterMicros++;
+
 }
 
 
