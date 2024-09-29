@@ -94,7 +94,7 @@ char lastString[64] = {0};
 
 // Variables globales para el funcionamiento del robot
 uint8_t defaultSpeed = 0;
-uint8_t counterPeriodBlinky = 0;
+uint8_t counterPeriodTest = 0;
 uint32_t counterPeriodMicros = 0;
 uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
@@ -147,7 +147,7 @@ int main(void){
 	sprintf(bufferMsg, "Saludos terrícolas, soy OPPY \n");
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 //	forwardMove(1);
-	counterPeriodBlinky = 0;
+	counterPeriodTest = 0;
 	counterPeriodMicros = 0;
 	counterPercDuty = 0;
 	percDutyR = 0;
@@ -191,7 +191,7 @@ int main(void){
 			stringComplete = 0;
 		}
 
-	}
+	} // Fin dewl while
 
 
 }	// Fin del main
@@ -543,9 +543,9 @@ void parseCommands(char  *ptrbufferReception){
 		// Código para realizar el estudio del comportamiento de los motores y los encoders
 		while(rxData == '\0'){
 
-			if(counterPeriodBlinky == 20){
+			if(counterPeriodTest == 20){
 				flagPeriod ^= 1;
-				counterPeriodBlinky = 0;
+				counterPeriodTest = 0;
 			}
 
 			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
@@ -719,7 +719,7 @@ void notnamed(float *percDutyR, float *percDutyL, uint16_t counts , float deltaD
 			}
 		}
 
-		flagTimer = 0;
+		flagTimer ^= 1;
 
 	} // Fin del while
 
@@ -831,7 +831,7 @@ void turnOn(void){
 /*
  * Función para el PID
  */
-void PID(uint16_t target, uint16_t measure){
+void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 
 
 	while(1){
@@ -861,7 +861,7 @@ void PID(uint16_t target, uint16_t measure){
 		if(u_PID > 100){
 			u_PID = 100;
 		}
-		updateDutyCycle(ptrPwmHandler, PWM + u_PID);
+		updateDutyCycle(PWM_handler, PWM_handler->config->percDuty + u_PID);
 
 	}
 
@@ -879,9 +879,9 @@ void Timer2_Callback(void){
 void Timer3_Callback(void){
 	gpio_TooglePin(&stateLed);
 	gpio_TooglePin(&stateLedBoard);
-	counterPeriodBlinky++;
+	counterPeriodTest++;
 	// La bandera se levanta cada 500 ms
-	flagTimer = 1;
+	flagTimer ^= 1;
 }
 
 

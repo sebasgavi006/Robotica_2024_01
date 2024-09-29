@@ -177,7 +177,7 @@ typedef struct
 /* Las funciones publicas se definen en los headers, y son accesibles por los programas dentro de proyecto (.c) */
 void gpio_Config (GPIO_Handler_t *pGPIOHandler);
 void gpio_WritePin (GPIO_Handler_t *pPinHandler, uint8_t newState);
-void gpio_TogglePin (GPIO_Handler_t *pPinHandler);
+void gpio_TooglePin (GPIO_Handler_t *pPinHandler);
 uint32_t gpio_ReadPin (GPIO_Handler_t *pPinHandler);
 uint8_t clock_mask(uint8_t segundo, uint8_t bit);
 

@@ -321,7 +321,7 @@ uint32_t gpio_ReadPin(GPIO_Handler_t *pPinHandler){
  *
  * Función para cambiar el estado de un PinX, al estado opuesto del actual
  */
-void gpio_TogglePin(GPIO_Handler_t *pPinHandler){
+void gpio_TooglePin(GPIO_Handler_t *pPinHandler){
 	// Definimos una variable auxiliar para guardar el estado del PinX
 	uint8_t auxVal = 0; // Se define de 8-bits para poder utilizarla como parámetro en la función gpio_WritePin, sin que hayan truncamientos
 
