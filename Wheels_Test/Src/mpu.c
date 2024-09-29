@@ -112,7 +112,6 @@ float diameterWheel = 51.78; // Diámetro en mm
 float percDutyR = 0;
 float percDutyL = 0;
 
-// Variables globales del PID que va a solucionar los problemas capilares de Nerio
 
 // Constantes de Tuning del PID
 float kp, ki, kd = 0;
@@ -126,6 +125,8 @@ float u_PID = 0;
 uint16_t counterBlinky = 0;
 uint16_t counterIMU = 0;
 uint32_t counterMicros = 0;
+uint16_t LimitBlinky = 0;
+uint16_t LimitGyro = 0;
 
 uint8_t periodBlinky = 0;
 
@@ -194,6 +195,10 @@ int main(void){
 	flagPeriod = 0;
 	flagTimer = 0;
 
+	// Periodos del Blinky y del Giroscopio
+	LimitBlinky = 50E3;
+	LimitGyro = 20E3;
+
 	// Se configura inicialmente el MPU
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	delay_ms(1);
@@ -224,7 +229,7 @@ int main(void){
 	while (1) {
 
 		// Función que maneja todos los conteos de tiempo basados en interrupciones del Timer2
-		manageCounters();
+		//manageCounters();
 
 		// Se revisa cual fue el dato recibido por la comunicacion serial
 		if(rxData != '\0'){
@@ -655,11 +660,11 @@ void parseCommands(char  *ptrbufferReception){
 	}
 
 	// Opción 6) Rot
-	else if(strcmp(cmd, "Rot") == 0){
+	else if(strcmp(cmd, "RotLecture") == 0){
 
 		usart_WriteMsg(&usart2Comm, "Mostrando valores de rotación \n");
 
-		if (counterIMU > 20E3) {
+		if (counterIMU > LimitGyro) {
 			yawIntegral();
 			counterIMU = 0;
 		}
@@ -719,6 +724,80 @@ void parseCommands(char  *ptrbufferReception){
 				usart_WriteMsg(&usart2Comm, "Periodo debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 			}
 	}
+
+/* ==================== PID ==================== */
+
+	// Opción ) PID Cuentas
+	else if(strcmp(cmd, "PID_Count") == 0){
+
+		usart_WriteMsg(&usart2Comm, "Iniciando PID \n");
+
+		if (firstParameter > 0){
+
+			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
+			percDutyL = 20;
+			percDutyR = 32;
+
+			forwardMove(percDutyL, percDutyR);
+
+			// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
+			deltaTime = LimitBlinky;
+
+			rxData = '\0';
+			while(rxData == '\0'){
+				//setCounts(&percDutyR, &percDutyL, (uint16_t)firstParameter, secondParameter);
+				PID(&PWM_R, firstParameter, counter_R);
+				PID(&PWM_L, firstParameter, counter_L);
+				counter_R = 0;
+				counter_L = 0;
+			}
+		}
+		else{
+			usart_WriteMsg(&usart2Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		}
+
+	}
+
+
+	// Opción ) PID Angulo
+	else if(strcmp(cmd, "PID_Rot") == 0){
+
+		usart_WriteMsg(&usart2Comm, "Iniciando PID \n");
+
+		if (firstParameter > 0){
+
+			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
+			percDutyL = 20;
+			percDutyR = 32;
+
+			forwardMove(percDutyL, percDutyR);
+
+			// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
+			deltaTime = LimitGyro;
+
+			rxData = '\0';
+			while(rxData == '\0'){
+
+				// Se generan las lecturas del giroscopio
+				if (counterIMU > LimitGyro) {
+					yawIntegral();
+					// Realiza el PID y ajuste los 	PWM de los motores
+					PID(&PWM_R, firstParameter, yaw_gyro);
+					PID(&PWM_L, firstParameter, yaw_gyro);
+					counterIMU = 0;
+				}
+
+
+			}
+		}
+		else{
+			usart_WriteMsg(&usart2Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		}
+
+	}
+
+
+/* ==================== PID ==================== */
 
 	// Opción 11) Stop
 	else if (strcmp(cmd, "Stop") == 0) {
@@ -926,8 +1005,9 @@ void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 	while(1){
 
 		// Se calcula la diferencia de tiempo
-		deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
-		prevTime = currTime;					// Actualizamos la variable del tiempo
+		//deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
+		//prevTime = currTime;					// Actualizamos la variable del tiempo
+		deltaTime = deltaTime;
 
 		// Se calcula el error de medida
 		deltaError = target - measure;			// Diferencia entre el valor deseado y el medido en la actual iteración
@@ -959,7 +1039,7 @@ void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 
 /* Función para manejar los diferentes conteos de tiempo (Periodos) */
 void manageCounters(void){
-	if (counterBlinky > 50E3){//cada 500 ms revisamos los contadores
+	if (counterBlinky > LimitBlinky){//cada 500 ms revisamos los contadores
 
 		gpio_TooglePin(&stateLed);//cambiamos el estado del led
 		gpio_TooglePin(&stateLedBoard);
@@ -1001,6 +1081,8 @@ void Timer2_Callback(void){
 	counterBlinky++;
 	counterIMU++;
 	counterMicros++;
+	// Función que maneja todos los conteos de tiempo basados en interrupciones del Timer2
+	manageCounters();
 
 }
 
