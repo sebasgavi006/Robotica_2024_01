@@ -363,8 +363,8 @@ void initSystem(void){
 	// 2. ===== TIMERS =====
 	/* Configurando el Timer del Blinky */
 	Tim_Blinky.pTIMx								= TIM2;
-	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100E5;	// Genera incrementos de 10 us. El micro está a 100MHz
-	Tim_Blinky.TIMx_Config.TIMx_Period				= 500;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500ms)
+	Tim_Blinky.TIMx_Config.TIMx_Prescaler			= 100;	// Genera incrementos de 10 us. El micro está a 100MHz
+	Tim_Blinky.TIMx_Config.TIMx_Period				= 10;		// De la mano con el pre-scaler, determina cuando se dispara una interrupción (500ms)
 	Tim_Blinky.TIMx_Config.TIMx_mode				= TIMER_UP_COUNTER;	// El Timer cuante ascendente
 	Tim_Blinky.TIMx_Config.TIMx_InterruptEnable		= TIMER_INT_ENABLE;	// Se activa la interrupción
 	timer_Config(&Tim_Blinky);
@@ -664,11 +664,15 @@ void parseCommands(char  *ptrbufferReception){
 
 		usart_WriteMsg(&usart2Comm, "Mostrando valores de rotación \n");
 
-		if (counterIMU > LimitGyro) {
-			yawIntegral();
-			counterIMU = 0;
-		}
+		rxData = '\0';
+		while(rxData == '\0'){
 
+			// Se generan las lecturas del giroscopio
+			if (counterIMU > LimitGyro) {
+				yawIntegral();
+				counterIMU = 0;
+			}
+		}
 	}
 
 	// Opción 7) Ajuste
