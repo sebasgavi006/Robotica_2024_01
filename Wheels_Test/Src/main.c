@@ -877,8 +877,8 @@ void Timer2_Callback(void){
 
 /* Callback de Timer 3 para el Blinky */
 void Timer3_Callback(void){
-	gpio_TooglePin(&stateLed);
-	gpio_TooglePin(&stateLedBoard);
+	gpio_TogglePin(&stateLed);
+	gpio_TogglePin(&stateLedBoard);
 	counterPeriodTest++;
 	// La bandera se levanta cada 500 ms
 	flagTimer ^= 1;

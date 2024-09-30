@@ -80,7 +80,7 @@ uint16_t counter_L = 0;
 //USART
 GPIO_Handler_t handlerPinTX		= {0};
 GPIO_Handler_t handlerPinRX		= {0};
-USART_Handler_t usart2Comm		= {0};
+USART_Handler_t usart1Comm		= {0};
 
 
 char bufferMsg[128] = {0};
@@ -185,7 +185,7 @@ int main(void){
 	initSystem();
 	turnOff();
 	sprintf(bufferMsg, "Saludos terrícolas, soy OPPY \n");
-	usart_WriteMsg(&usart2Comm, bufferMsg);
+	usart_WriteMsg(&usart1Comm, bufferMsg);
 	counterPeriodTest = 0;
 	counterPercDuty = 0;
 	percDutyR = 0;
@@ -208,22 +208,22 @@ int main(void){
 	//verificamos WhoAmI
 	uint8_t WhoAmI = imuWhoAmI(&imuHandler);
 	sprintf(bufferData, "WHOAMI = %u \n", WhoAmI);
-	usart_WriteMsg(&usart2Comm, bufferData);
+	usart_WriteMsg(&usart1Comm, bufferData);
 
 	setAccelRange(&imuHandler, ACCEL_RANGE_2_G);
 	setGyroRange(&imuHandler, GYRO_RANGE_500_DEG);
 	setAccelDLPF(&imuHandler, DLPF_260HZ);
 
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
-	usart_WriteMsg(&usart2Comm, bufferMsg);
+	usart_WriteMsg(&usart1Comm, bufferMsg);
 
-	usart_WriteMsg(&usart2Comm, "Please dont move the sensor. Calibration Starting...\n");
+	usart_WriteMsg(&usart1Comm, "Please dont move the sensor. Calibration Starting...\n");
 	sprintf(bufferMsg,"Offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
-	usart_WriteMsg(&usart2Comm, bufferMsg);
+	usart_WriteMsg(&usart1Comm, bufferMsg);
 	gyroStaticCalibration(&imuHandler,nReadings);
 	sprintf(bufferMsg,"Offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
-	usart_WriteMsg(&usart2Comm, bufferMsg);
-	usart_WriteMsg(&usart2Comm, "Calibration finished\n");
+	usart_WriteMsg(&usart1Comm, bufferMsg);
+	usart_WriteMsg(&usart1Comm, "Calibration finished\n");
 
 	/* Loop forever */
 	while (1) {
@@ -379,27 +379,51 @@ void initSystem(void){
 	configPLL(&pllHandler);
 
 	/* ==================================== Configurando los USART =============================================*/
+//	handlerPinTX.pGPIOx										= GPIOA;
+//	handlerPinTX.pinConfig.GPIO_PinNumber					= PIN_2;
+//	handlerPinTX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
+//	handlerPinTX.pinConfig.GPIO_PinAltFunMode				= AF7;
+//	gpio_Config(&handlerPinTX);
+//
+//	handlerPinRX.pGPIOx										= GPIOA;
+//	handlerPinRX.pinConfig.GPIO_PinNumber					= PIN_3;
+//	handlerPinRX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
+//	handlerPinRX.pinConfig.GPIO_PinAltFunMode				= AF7;
+//	gpio_Config(&handlerPinRX);
+//
+//	usart1Comm.ptrUSARTx									= USART2;
+//	usart1Comm.USART_Config.baudrate						= USART_BAUDRATE_9600;
+//	usart1Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
+//	usart1Comm.USART_Config.parity							= USART_PARITY_NONE;
+//	usart1Comm.USART_Config.stopbits						= USART_STOPBIT_1;
+//	usart1Comm.USART_Config.mode							= USART_MODE_RXTX;
+//	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
+//	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
+//	usart_Config(&usart1Comm);
+
+	/*USART 1 -> Comunicación serial a través de la antena */
 	handlerPinTX.pGPIOx										= GPIOA;
-	handlerPinTX.pinConfig.GPIO_PinNumber					= PIN_2;
+	handlerPinTX.pinConfig.GPIO_PinNumber					= PIN_9;
 	handlerPinTX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
 	handlerPinTX.pinConfig.GPIO_PinAltFunMode				= AF7;
 	gpio_Config(&handlerPinTX);
 
 	handlerPinRX.pGPIOx										= GPIOA;
-	handlerPinRX.pinConfig.GPIO_PinNumber					= PIN_3;
+	handlerPinRX.pinConfig.GPIO_PinNumber					= PIN_10;
 	handlerPinRX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
 	handlerPinRX.pinConfig.GPIO_PinAltFunMode				= AF7;
 	gpio_Config(&handlerPinRX);
 
-	usart2Comm.ptrUSARTx									= USART2;
-	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_9600;
-	usart2Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
-	usart2Comm.USART_Config.parity							= USART_PARITY_NONE;
-	usart2Comm.USART_Config.stopbits						= USART_STOPBIT_1;
-	usart2Comm.USART_Config.mode							= USART_MODE_RXTX;
-	usart2Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
-	usart2Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
-	usart_Config(&usart2Comm);
+	usart1Comm.ptrUSARTx									= USART1;
+	usart1Comm.USART_Config.baudrate						= USART_BAUDRATE_100MHz_19200;
+	usart1Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
+	usart1Comm.USART_Config.parity							= USART_PARITY_NONE;
+	usart1Comm.USART_Config.stopbits						= USART_STOPBIT_1;
+	usart1Comm.USART_Config.mode							= USART_MODE_RXTX;
+	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
+	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
+	usart_Config(&usart1Comm);
+
 
 
 	// 3. ===== PWM =====
@@ -447,6 +471,32 @@ void initSystem(void){
 
 	i2c_Config(&imuHandler);
 
+//	imuSDA.pGPIOx								= GPIOB; // Lado izquierdo del micro
+//	imuSDA.pinConfig.GPIO_PinNumber				= PIN_7;
+//	imuSDA.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+//	imuSDA.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
+//	imuSDA.pinConfig.GPIO_PinAltFunMode			= AF4;
+//	imuSDA.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	imuSDA.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+//	gpio_Config(&imuSDA);
+//
+//	imuSCL.pGPIOx								= GPIOB; // Lado derecho del micro
+//	imuSCL.pinConfig.GPIO_PinNumber				= PIN_6;
+//	imuSCL.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+//	imuSCL.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
+//	imuSCL.pinConfig.GPIO_PinAltFunMode			= AF4;
+//	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_PULLUP;
+//	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
+//	gpio_Config(&imuSCL);
+//
+//
+//	imuHandler.slaveAddress = MPU6050_ADDRESS;
+//	imuHandler.ptrI2Cx		= I2C1;
+//	imuHandler.modeI2C		= I2C_MODE_SM;
+//	imuHandler.mainClock	= MAIN_CLOCK_100_MHz_FOR_I2C;
+//
+//	i2c_Config(&imuHandler);
+
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -459,26 +509,26 @@ void parseCommands(char  *ptrbufferReception){
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
 	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart2Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart2Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart2Comm, "3) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
+		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
+		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "3) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
 
-		usart_WriteMsg(&usart2Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
-		usart_WriteMsg(&usart2Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
+		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
 
-		usart_WriteMsg(&usart2Comm, "6) RotLecture -> Datos de rotación actual \" RotLecture @\" \n");
+		usart_WriteMsg(&usart1Comm, "6) RotLecture -> Datos de rotación actual \" RotLecture @\" \n");
 
-		usart_WriteMsg(&usart2Comm, "7) Ajuste Cuentas (#) ; deltaDuty (float) @ \n");
+		usart_WriteMsg(&usart1Comm, "7) Ajuste Cuentas (#) ; deltaDuty (float) @ \n");
 
-		usart_WriteMsg(&usart2Comm, "8) PID_Count Target (#) @ \n");
+		usart_WriteMsg(&usart1Comm, "8) PID_Count Target (#) @ \n");
 
-		usart_WriteMsg(&usart2Comm, "9) PID_Rot Target (#) @ \n");
+		usart_WriteMsg(&usart1Comm, "9) PID_Rot Target (#) @ \n");
 
-		usart_WriteMsg(&usart2Comm, "10) PID Target (#) @ \n");
+		usart_WriteMsg(&usart1Comm, "10) PID Target (#) @ \n");
 
-		usart_WriteMsg(&usart2Comm, "11) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart2Comm, "12) Resume \" Resume @\" \n");
+		usart_WriteMsg(&usart1Comm, "11) Stop \" Stop @\" \n");
+		usart_WriteMsg(&usart1Comm, "12) Resume \" Resume @\" \n");
 
 	}
 
@@ -493,7 +543,7 @@ void parseCommands(char  *ptrbufferReception){
 			else{
 				forwardMove(10, 10);
 			}
-			usart_WriteMsg(&usart2Comm, "Moviéndose hacia adelante \n");
+			usart_WriteMsg(&usart1Comm, "Moviéndose hacia adelante \n");
 		}
 		else if (firstParameter == 1 && secondParameter >= 0){
 			if (defaultSpeed == 0){
@@ -502,7 +552,7 @@ void parseCommands(char  *ptrbufferReception){
 			else{
 				backwardMove(10, 10);
 			}
-			usart_WriteMsg(&usart2Comm, "Moviéndose hacia atrás \n");
+			usart_WriteMsg(&usart1Comm, "Moviéndose hacia atrás \n");
 		}
 		defaultSpeed = 0;
 	}
@@ -519,10 +569,10 @@ void parseCommands(char  *ptrbufferReception){
 				updateDutyCycle(&PWM_R,(uint16_t)secondParameter);
 
 				sprintf(bufferMsg,"Velocidad actualizada: %.2f, %.2f \n",firstParameter, secondParameter);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
-				usart_WriteMsg(&usart2Comm, "Porcentaje debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+				usart_WriteMsg(&usart1Comm, "Porcentaje debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 			}
 	}
 
@@ -532,7 +582,7 @@ void parseCommands(char  *ptrbufferReception){
 		if (firstParameter > 0 && secondParameter > 0) {
 
 			sprintf(bufferMsg,"Iniciando conteo \n");
-			usart_WriteMsg(&usart2Comm, bufferMsg);
+			usart_WriteMsg(&usart1Comm, bufferMsg);
 
 			counter_R = 0;
 			counter_L = 0;
@@ -555,7 +605,7 @@ void parseCommands(char  *ptrbufferReception){
 					stopPwmSignal(&PWM_R);
 
 					sprintf(bufferMsg,"Conteo Encoder Derecho: %u \n",counter_R);
-					usart_WriteMsg(&usart2Comm, bufferMsg);
+					usart_WriteMsg(&usart1Comm, bufferMsg);
 					counter_R = 0;
 					flagEncR = 0;
 				}
@@ -570,7 +620,7 @@ void parseCommands(char  *ptrbufferReception){
 
 
 					sprintf(bufferMsg,"Conteo Encoder Izquierdo: %u \n",counter_L);
-					usart_WriteMsg(&usart2Comm, bufferMsg);
+					usart_WriteMsg(&usart1Comm, bufferMsg);
 					counter_L = 0;
 					flagEncL = 0;
 				}
@@ -580,17 +630,17 @@ void parseCommands(char  *ptrbufferReception){
 			flagEncR = 1;
 			flagEncL = 1;
 			sprintf(bufferMsg,"Conteo realizado \n");
-			usart_WriteMsg(&usart2Comm, bufferMsg);
+			usart_WriteMsg(&usart1Comm, bufferMsg);
 		}
 		else{
-			usart_WriteMsg(&usart2Comm, "El valor debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "El valor debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 	}
 
 	// Opción 4) TestEncoders
 	else if(strcmp(cmd, "TestEncoders") == 0) {
 
-		usart_WriteMsg(&usart2Comm, "Iniciando Test Encoders\n");
+		usart_WriteMsg(&usart1Comm, "Iniciando Test Encoders\n");
 		forwardMove(firstParameter,firstParameter);
 
 		rxData = '\0';
@@ -598,19 +648,19 @@ void parseCommands(char  *ptrbufferReception){
 		while(rxData == '\0'){
 //			if(flagEncR){
 //				sprintf(bufferMsg,"Right,%u\n", counter_R);
-//				usart_WriteMsg(&usart2Comm, bufferMsg);
+//				usart_WriteMsg(&usart1Comm, bufferMsg);
 //				flagEncR = 0;
 //				rxData = '\0';
 //			}
 //			if(flagEncL){
 //				sprintf(bufferMsg,"Left,%u\n", counter_L);
-//				usart_WriteMsg(&usart2Comm, bufferMsg);
+//				usart_WriteMsg(&usart1Comm, bufferMsg);
 //				flagEncL = 0;
 //				rxData = '\0';
 //			}
 			if(flagEncR || flagEncL){
 				sprintf(bufferMsg,"%u \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 				flagEncR = 0;
 				flagEncL = 0;
 			}
@@ -621,7 +671,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción 5) Test
 	else if(strcmp(cmd, "Test") == 0){
 
-		usart_WriteMsg(&usart2Comm, "Iniciando Test \n");
+		usart_WriteMsg(&usart1Comm, "Iniciando Test \n");
 		forwardMove(0,0);
 		counter_R = 0;
 		counter_L = 0;
@@ -641,7 +691,7 @@ void parseCommands(char  *ptrbufferReception){
 
 				sprintf(bufferMsg,"%u \t %u \t %u \n",counter_L,counter_R, counterPercDuty);
 
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_R = 0;
 				counter_L = 0;
@@ -653,7 +703,7 @@ void parseCommands(char  *ptrbufferReception){
 			if(counterPercDuty == 99){
 				counterPercDuty = 0;
 				turnOff();
-				usart_WriteMsg(&usart2Comm, "Test finished \n");
+				usart_WriteMsg(&usart1Comm, "Test finished \n");
 			}
 		}
 
@@ -662,7 +712,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción 6) Rot
 	else if(strcmp(cmd, "RotLecture") == 0){
 
-		usart_WriteMsg(&usart2Comm, "Mostrando valores de rotación \n");
+		usart_WriteMsg(&usart1Comm, "Mostrando valores de rotación \n");
 
 		rxData = '\0';
 		while(rxData == '\0'){
@@ -678,7 +728,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción 7) Ajuste
 	else if(strcmp(cmd, "Ajuste") == 0){
 
-		usart_WriteMsg(&usart2Comm, "Realizando Ajuste \n");
+		usart_WriteMsg(&usart1Comm, "Realizando Ajuste \n");
 
 		if (firstParameter > 0 && secondParameter > 0){
 
@@ -690,7 +740,7 @@ void parseCommands(char  *ptrbufferReception){
 			}
 		}
 		else{
-			usart_WriteMsg(&usart2Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 
 	}
@@ -705,10 +755,10 @@ void parseCommands(char  *ptrbufferReception){
 
 
 				sprintf(bufferMsg,"Frecuencia actualizado: %.2f \n",firstParameter);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
-				usart_WriteMsg(&usart2Comm, "La Frecuencia debe ser positiva.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+				usart_WriteMsg(&usart1Comm, "La Frecuencia debe ser positiva.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 			}
 	}
 
@@ -722,10 +772,10 @@ void parseCommands(char  *ptrbufferReception){
 
 
 				sprintf(bufferMsg,"Periodo actualizado: %.2f \n",firstParameter);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
-				usart_WriteMsg(&usart2Comm, "Periodo debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+				usart_WriteMsg(&usart1Comm, "Periodo debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 			}
 	}
 
@@ -734,7 +784,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción ) PID Cuentas
 	else if(strcmp(cmd, "PID_Count") == 0){
 
-		usart_WriteMsg(&usart2Comm, "Iniciando PID \n");
+		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
 
 		if (firstParameter > 0){
 
@@ -757,7 +807,7 @@ void parseCommands(char  *ptrbufferReception){
 			}
 		}
 		else{
-			usart_WriteMsg(&usart2Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 
 	}
@@ -766,7 +816,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción ) PID Angulo
 	else if(strcmp(cmd, "PID_Rot") == 0){
 
-		usart_WriteMsg(&usart2Comm, "Iniciando PID \n");
+		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
 
 		if (firstParameter > 0){
 
@@ -795,7 +845,7 @@ void parseCommands(char  *ptrbufferReception){
 			}
 		}
 		else{
-			usart_WriteMsg(&usart2Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 
 	}
@@ -807,23 +857,23 @@ void parseCommands(char  *ptrbufferReception){
 	else if (strcmp(cmd, "Stop") == 0) {
 		flagStop = 1;
 		turnOff();
-		usart_WriteMsg(&usart2Comm, "Detiene del sistema \n");
+		usart_WriteMsg(&usart1Comm, "Detiene del sistema \n");
 	}
 
 	// Opción 12) Resume
 	else if (strcmp(cmd, "Resume") == 0) {
 		turnOn();
-		usart_WriteMsg(&usart2Comm, "Reanuda del sistema \n");
+		usart_WriteMsg(&usart1Comm, "Reanuda del sistema \n");
 	}
 
 	// Opción para resetear en cualquier momento
 	else if (strcmp(cmd, "reset") == 0) {
-		usart_WriteMsg(&usart2Comm, "PWR_MGMT_1 reset \n");
+		usart_WriteMsg(&usart1Comm, "PWR_MGMT_1 reset \n");
 
 	}
 
 	else{
-		usart_WriteMsg(&usart2Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+		usart_WriteMsg(&usart1Comm, "Comando erroneo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 	}
 
 
@@ -844,7 +894,7 @@ void setCounts(float *percDutyR, float *percDutyL, uint16_t counts , float delta
 				updateDutyCycle(&PWM_R, *percDutyR);
 
 				sprintf(bufferMsg,"Aum. duty der.: %.2f \n", *percDutyR);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_R = 0;
 
@@ -855,7 +905,7 @@ void setCounts(float *percDutyR, float *percDutyL, uint16_t counts , float delta
 				updateDutyCycle(&PWM_R, *percDutyR);
 
 				sprintf(bufferMsg,"Dism. duty der.: %.2f \n",*percDutyR);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_R = 0;
 
@@ -874,7 +924,7 @@ void setCounts(float *percDutyR, float *percDutyL, uint16_t counts , float delta
 				updateDutyCycle(&PWM_L, *percDutyL);
 
 				sprintf(bufferMsg,"Aum. duty izq.: %.2f \n",*percDutyL);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_L = 0;
 
@@ -885,7 +935,7 @@ void setCounts(float *percDutyR, float *percDutyL, uint16_t counts , float delta
 				updateDutyCycle(&PWM_L, *percDutyL);
 
 				sprintf(bufferMsg,"Dism. duty izq.: %.2f \n",*percDutyL);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
 
 				counter_L = 0;
 
@@ -1045,8 +1095,8 @@ void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 void manageCounters(void){
 	if (counterBlinky > LimitBlinky){//cada 500 ms revisamos los contadores
 
-		gpio_TooglePin(&stateLed);//cambiamos el estado del led
-		gpio_TooglePin(&stateLedBoard);
+		gpio_TogglePin(&stateLed);//cambiamos el estado del led
+		gpio_TogglePin(&stateLedBoard);
 
 		if (gpio_ReadPin(&stateLed)) {//si el pin esta en alto contamos
 			if (periodBlinky > 10) {//contamos cada ciclo de encendido-apagado de led
@@ -1076,7 +1126,7 @@ void yawIntegral(void){
 
 //	sprintf(bufferMsg,"gyro values  %.2f,%.2f,%.2f\n",gyroData[0],gyroData[1],gyroData[2]);
 	sprintf(bufferMsg,"rate is  %.2f \t Yaw  %.2f\n",gyroData[2],yaw_gyro);
-	usart_WriteMsg(&usart2Comm, bufferMsg);
+	usart_WriteMsg(&usart1Comm, bufferMsg);
 }
 
 
@@ -1092,8 +1142,8 @@ void Timer2_Callback(void){
 
 
 /* Interrupciones por recepcion a traves de transmision serial */
-void usart2_RxCallback(void){
-	rxData = usart2_getRxData();
+void usart1_RxCallback(void){
+	rxData = usart1_getRxData();
 
 }
 
