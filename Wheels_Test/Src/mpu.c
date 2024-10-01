@@ -107,7 +107,7 @@ uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
 
 
-float diameterWheel = 51.78; // Diámetro en mm
+float diameterWheel = 23.5 * 2; // Diámetro en mm
 
 float percDutyR = 0;
 float percDutyL = 0;
@@ -127,6 +127,7 @@ uint16_t counterIMU = 0;
 uint32_t counterMicros = 0;
 uint16_t LimitBlinky = 0;
 uint16_t LimitGyro = 0;
+uint8_t flagPID = 0;
 
 uint8_t periodBlinky = 0;
 
@@ -194,6 +195,7 @@ int main(void){
 	flagEncL = 0;
 	flagPeriod = 0;
 	flagTimer = 0;
+	flagPID = 0;
 
 	// Periodos del Blinky y del Giroscopio
 	LimitBlinky = 50E3;
@@ -800,7 +802,9 @@ void parseCommands(char  *ptrbufferReception){
 			rxData = '\0';
 			while(rxData == '\0'){
 				//setCounts(&percDutyR, &percDutyL, (uint16_t)firstParameter, secondParameter);
+				flagPID = 1;
 				PID(&PWM_R, firstParameter, counter_R);
+				flagPID = 1;
 				PID(&PWM_L, firstParameter, counter_L);
 				counter_R = 0;
 				counter_L = 0;
@@ -836,7 +840,9 @@ void parseCommands(char  *ptrbufferReception){
 				if (counterIMU > LimitGyro) {
 					yawIntegral();
 					// Realiza el PID y ajuste los 	PWM de los motores
+					flagPID = 1;
 					PID(&PWM_R, firstParameter, yaw_gyro);
+					flagPID = 1;
 					PID(&PWM_L, firstParameter, yaw_gyro);
 					counterIMU = 0;
 				}
@@ -1056,7 +1062,7 @@ void turnOn(void){
 void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 
 
-	while(1){
+	while(flagPID){
 
 		// Se calcula la diferencia de tiempo
 		//deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
@@ -1084,8 +1090,12 @@ void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 		if(u_PID > 100){
 			u_PID = 100;
 		}
+
+		// Actualizamos el dutyCycle según el ajuste producto del PID
 		updateDutyCycle(PWM_handler, PWM_handler->config.percDuty + u_PID);
 
+		// Bajamos la bandera para salir del while
+		flagPID = 0;
 	}
 
 }
