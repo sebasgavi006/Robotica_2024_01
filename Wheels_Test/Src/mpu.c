@@ -905,13 +905,13 @@ void parseCommands(char  *ptrbufferReception){
 		if (firstParameter >= 0){
 
 			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
-			percDutyL = minPWM;
-			percDutyR = minPWM;
+			percDutyL = 15.0;
+			percDutyR = 20.0;
 
 			forwardMove(percDutyL, percDutyR);
 
 			// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
-			deltaTime = LimitGyro;
+
 
 			rxData = '\0';
 			while(rxData == '\0'){
@@ -1148,7 +1148,7 @@ void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float targe
 		// Se calcula la diferencia de tiempo
 		//deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
 		//prevTime = currTime;					// Actualizamos la variable del tiempo
-		deltaTime = deltaTime/100000.0;
+		deltaTime = 0.02;
 
 		// Se calcula el error de medida
 		deltaError = target - measure;			// Diferencia entre el valor deseado y el medido en la actual iteración
@@ -1167,21 +1167,21 @@ void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float targe
 
 		/* La señal de control de PID, que representa la variable que modifica el actuador del sistema,
 		 * en este caso el PWM para los motores */
-		u_PID = kp*deltaError + ki*integralError + kd*devError;
+		u_PID = (float)(kp*deltaError + ki*integralError + kd*devError);
 
 		// Realizamos el ajuste en el motor
 
 		/*
 		 * PASARLO A VALOR ASBOLUTO (u_PID)
 		 */
-		if(u_PID >= maxPWM){
-			u_PID = maxPWM;
-		}
-		else if(u_PID <= minPWM){
-			u_PID = minPWM;
-		}
+//		if(u_PID >= maxPWM){
+//			u_PID = maxPWM;
+//		}
+//		else if(u_PID <= minPWM){
+//			u_PID = minPWM;
+//		}
 
-		uint16_t newDutyCycleR = PWM_R_handler->config.percDuty + u_PID;
+		uint16_t newDutyCycleR = percDutyR + u_PID;
 		if (newDutyCycleR > maxPWM) {
 		    newDutyCycleR = maxPWM;
 		} else if (newDutyCycleR < minPWM) {
@@ -1189,7 +1189,7 @@ void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float targe
 		}
 		updateDutyCycle(PWM_R_handler, newDutyCycleR);
 
-		uint16_t newDutyCycleL = PWM_L_handler->config.percDuty - u_PID;
+		uint16_t newDutyCycleL = percDutyL - u_PID;
 		if (newDutyCycleL > maxPWM) {
 		    newDutyCycleL = maxPWM;
 		} else if (newDutyCycleL < minPWM) {
