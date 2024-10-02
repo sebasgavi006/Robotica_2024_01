@@ -105,16 +105,19 @@ uint8_t flagEncL = 0;
 uint8_t flagStop = 0;
 uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
-
+uint8_t flagGyro = 0;
 
 float diameterWheel = 23.5 * 2; // Diámetro en mm
 
-float percDutyR = 0;
-float percDutyL = 0;
+float percDutyR = 0.0;
+float percDutyL = 0.0;
+float minPWM = 10.0;
+float maxPWM = 40.0;
+float alpha = 0.98;
 
 
 // Constantes de Tuning del PID
-float kp, ki, kd = 0;
+float kp, ki, kd = 0.0;
 uint32_t currTime, prevTime = 0;
 float prevError, devError, integralError = 0;
 float deltaError, deltaTime = 0;
@@ -152,8 +155,8 @@ float previousGyroZ = 0.0;
 float currentGyroZ = 0.0;
 
 float yaw_gyro = 0.0;       // Ángulo calculado con el acelerómetro
-float dt = 0.2;           // Intervalo de tiempo (20 ms)
-
+float dt = 0.02;           // Intervalo de tiempo (20 ms)
+float factorDegrees = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -165,7 +168,8 @@ void backwardMove(float percDutyL, float percDutyR);
 void setCounts(float *percDutyR, float *percDutyL, uint16_t counts , float deltaDuty);
 void turnOff(void);
 void turnOn(void);
-void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure);
+void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float target, float measure);
+
 
 void manageCounters(void);
 void yawIntegral(void);
@@ -189,17 +193,27 @@ int main(void){
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 	counterPeriodTest = 0;
 	counterPercDuty = 0;
-	percDutyR = 0;
-	percDutyL = 0;
+	percDutyR = 0.0;
+	percDutyL = 0.0;
 	flagEncR = 0;
 	flagEncL = 0;
 	flagPeriod = 0;
 	flagTimer = 0;
 	flagPID = 0;
+	flagGyro = 0;
 
 	// Periodos del Blinky y del Giroscopio
 	LimitBlinky = 50E3;
-	LimitGyro = 20E3;
+	LimitGyro = 2E3;
+
+	// Constantes del PID
+	kp = 0.0;
+	ki = 0.0;
+	kd = 0.0;
+
+	// Límites del PWM
+	alpha = 0.98;
+	factorDegrees = 180./M_PI;
 
 	// Se configura inicialmente el MPU
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
@@ -715,13 +729,14 @@ void parseCommands(char  *ptrbufferReception){
 	else if(strcmp(cmd, "RotLecture") == 0){
 
 		usart_WriteMsg(&usart1Comm, "Mostrando valores de rotación \n");
-
+		yaw_gyro = 0;
 		rxData = '\0';
 		while(rxData == '\0'){
 
 			// Se generan las lecturas del giroscopio
-			if (counterIMU > LimitGyro) {
+			if (flagGyro) {
 				yawIntegral();
+				flagGyro = 0;
 				counterIMU = 0;
 			}
 		}
@@ -781,6 +796,72 @@ void parseCommands(char  *ptrbufferReception){
 			}
 	}
 
+	else if(strcmp(cmd, "kp") == 0) {
+			if (firstParameter >= 0) {
+
+				kp = firstParameter;
+
+				sprintf(bufferMsg,"kp actualizado: %.2f \n",kp);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Inválido.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+	else if(strcmp(cmd, "ki") == 0) {
+			if (firstParameter >= 0) {
+
+				ki = firstParameter;
+
+				sprintf(bufferMsg,"ki actualizado: %.2f \n",ki);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Inválido.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+	else if(strcmp(cmd, "kd") == 0) {
+			if (firstParameter >= 0) {
+
+				kd = firstParameter;
+
+				sprintf(bufferMsg,"kp actualizado: %.2f \n",kd);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Inválido.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+	else if(strcmp(cmd, "maxPWM") == 0) {
+			if (firstParameter >= 0) {
+
+				maxPWM = firstParameter;
+
+				sprintf(bufferMsg,"maxPWM actualizado: %.2f \n",maxPWM);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Inválido.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+	else if(strcmp(cmd, "minPWM") == 0) {
+			if (firstParameter >= 0) {
+
+				minPWM = firstParameter;
+
+				sprintf(bufferMsg,"minPWM actualizado: %.2f \n",minPWM);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+			}
+			else{
+				usart_WriteMsg(&usart1Comm, "Inválido.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			}
+	}
+
+
 /* ==================== PID ==================== */
 
 	// Opción ) PID Cuentas
@@ -792,7 +873,7 @@ void parseCommands(char  *ptrbufferReception){
 
 			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
 			percDutyL = 20;
-			percDutyR = 32;
+			percDutyR = 20;
 
 			forwardMove(percDutyL, percDutyR);
 
@@ -803,9 +884,8 @@ void parseCommands(char  *ptrbufferReception){
 			while(rxData == '\0'){
 				//setCounts(&percDutyR, &percDutyL, (uint16_t)firstParameter, secondParameter);
 				flagPID = 1;
-				PID(&PWM_R, firstParameter, counter_R);
-				flagPID = 1;
-				PID(&PWM_L, firstParameter, counter_L);
+				PID(&PWM_R, &PWM_L, firstParameter, counter_R);
+
 				counter_R = 0;
 				counter_L = 0;
 			}
@@ -822,11 +902,11 @@ void parseCommands(char  *ptrbufferReception){
 
 		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
 
-		if (firstParameter > 0){
+		if (firstParameter >= 0){
 
 			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
-			percDutyL = 20;
-			percDutyR = 32;
+			percDutyL = minPWM;
+			percDutyR = minPWM;
 
 			forwardMove(percDutyL, percDutyR);
 
@@ -837,15 +917,14 @@ void parseCommands(char  *ptrbufferReception){
 			while(rxData == '\0'){
 
 				// Se generan las lecturas del giroscopio
-				if (counterIMU > LimitGyro) {
+				if (flagGyro) {
 					yawIntegral();
 					// Realiza el PID y ajuste los 	PWM de los motores
-					flagPID = 1;
-					PID(&PWM_R, firstParameter, yaw_gyro);
-					flagPID = 1;
-					PID(&PWM_L, firstParameter, yaw_gyro);
+					PID(&PWM_R, &PWM_L, firstParameter, yaw_gyro);
 					counterIMU = 0;
+					flagGyro = 0;
 				}
+
 
 
 			}
@@ -1058,22 +1137,30 @@ void turnOn(void){
 }
 
 
-/* Función para el PID */
-void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 
+/* Función para el PID */
+void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float target, float measure){
+
+	flagPID = 1;
 
 	while(flagPID){
 
 		// Se calcula la diferencia de tiempo
 		//deltaTime = (currTime - prevTime) / 1E5; 	// Se calcula al diferencia de tiempo y se deja en segundos (unidades)
 		//prevTime = currTime;					// Actualizamos la variable del tiempo
-		deltaTime = deltaTime;
+		deltaTime = deltaTime/100000.0;
 
 		// Se calcula el error de medida
 		deltaError = target - measure;			// Diferencia entre el valor deseado y el medido en la actual iteración
+		if (deltaError > 180.0) {
+		    deltaError -= 360.0;
+		} else if (deltaError < -180.0) {
+		    deltaError += 360.0;
+		}
 
 		// Se calcula la parte Derivativa del error
 		devError = (deltaError - prevError) / deltaTime;
+		prevError = deltaError;
 
 		// Se calcula la parte Integral del error
 		integralError = integralError + (deltaError*deltaTime);
@@ -1087,12 +1174,28 @@ void PID(PWM_Handler_t *PWM_handler, uint16_t target, uint16_t measure){
 		/*
 		 * PASARLO A VALOR ASBOLUTO (u_PID)
 		 */
-		if(u_PID > 100){
-			u_PID = 100;
+		if(u_PID >= maxPWM){
+			u_PID = maxPWM;
+		}
+		else if(u_PID <= minPWM){
+			u_PID = minPWM;
 		}
 
-		// Actualizamos el dutyCycle según el ajuste producto del PID
-		updateDutyCycle(PWM_handler, PWM_handler->config.percDuty + u_PID);
+		uint16_t newDutyCycleR = PWM_R_handler->config.percDuty + u_PID;
+		if (newDutyCycleR > maxPWM) {
+		    newDutyCycleR = maxPWM;
+		} else if (newDutyCycleR < minPWM) {
+		    newDutyCycleR = minPWM;
+		}
+		updateDutyCycle(PWM_R_handler, newDutyCycleR);
+
+		uint16_t newDutyCycleL = PWM_L_handler->config.percDuty - u_PID;
+		if (newDutyCycleL > maxPWM) {
+		    newDutyCycleL = maxPWM;
+		} else if (newDutyCycleL < minPWM) {
+		    newDutyCycleL = minPWM;
+		}
+		updateDutyCycle(PWM_L_handler, newDutyCycleL);
 
 		// Bajamos la bandera para salir del while
 		flagPID = 0;
@@ -1115,24 +1218,31 @@ void manageCounters(void){
 			periodBlinky++;//aumentamos el contador del periodo
 		}
 
+
 		flagTimer ^= 1;
 		counterBlinky = 0;
 		counterPeriodTest++;
 
 	}
+
+	if(counterIMU > LimitGyro){
+		flagGyro = 1;
+		counterIMU = 0;
+	}
+
 }
 
 /* Función para calcular la rotación en grados del robot (yaw) */
 void yawIntegral(void){
 	readGyro(&imuHandler, gyroData);
-	yaw_gyro += (gyroData[2] * dt)* (180.0/M_PI);
+	yaw_gyro += (gyroData[2] * dt);
 
-    // Corrección de los límites de yaw_gyro
-    if (yaw_gyro > 360.0) {
-        yaw_gyro -= 360.0;
-    } else if (yaw_gyro < 0.0) {
-        yaw_gyro += 360.0;
-    }
+	// Normalización eficiente
+	if (yaw_gyro > 180.0) {
+	    yaw_gyro -= 360.0;
+	} else if (yaw_gyro < -180.0) {
+	    yaw_gyro += 360.0;
+	}
 
 //	sprintf(bufferMsg,"gyro values  %.2f,%.2f,%.2f\n",gyroData[0],gyroData[1],gyroData[2]);
 	sprintf(bufferMsg,"rate is  %.2f \t Yaw  %.2f\n",gyroData[2],yaw_gyro);
