@@ -107,17 +107,23 @@ uint8_t flagPeriod = 0;
 uint8_t flagTimer = 0;
 uint8_t flagGyro = 0;
 
-float diameterWheel = 23.5 * 2; // Diámetro en mm
+float diameterWheel = 50; // Diámetro en mm
+float slots = 72.0;
+float circPerim = 0;	//perimetro de la rueda en mm
+float distInterrupt = 0; //distancia recorrida por cada interrupción
+float mmDist = 0;
 
-float percDutyR = 0.0;
-float percDutyL = 0.0;
+float percDutyR = 60.0;
+float percDutyL = 45.0;
 float minPWM = 10.0;
-float maxPWM = 40.0;
+float maxPWM = 80.0;
 float alpha = 0.98;
 
 
 // Constantes de Tuning del PID
-float kp, ki, kd = 0.0;
+float kp = 2.5;
+float ki = 0.05;
+float kd = 0.08;
 uint32_t currTime, prevTime = 0;
 float prevError, devError, integralError = 0;
 float deltaError, deltaTime = 0;
@@ -170,6 +176,10 @@ void turnOff(void);
 void turnOn(void);
 void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float target, float measure);
 
+float linearDistance(uint16_t interruptCounter_R, uint16_t interruptCounter_L);
+void linePID(float angle, float distance);
+void drawSquare(float dim);
+
 
 void manageCounters(void);
 void yawIntegral(void);
@@ -193,8 +203,8 @@ int main(void){
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 	counterPeriodTest = 0;
 	counterPercDuty = 0;
-	percDutyR = 0.0;
-	percDutyL = 0.0;
+
+
 	flagEncR = 0;
 	flagEncL = 0;
 	flagPeriod = 0;
@@ -206,10 +216,9 @@ int main(void){
 	LimitBlinky = 50E3;
 	LimitGyro = 2E3;
 
-	// Constantes del PID
-	kp = 0.0;
-	ki = 0.0;
-	kd = 0.0;
+
+	circPerim = M_PI*diameterWheel;	//perimetro de la rueda en mm
+	distInterrupt = circPerim / slots; //distancia recorrida por cada interrupción
 
 	// Límites del PWM
 	alpha = 0.98;
@@ -460,6 +469,17 @@ void initSystem(void){
 	pwm_Config(&PWM_L);
 
 
+	// 4. ====== EXTI =====
+	/* Condigurando EXTI1 - Encoder Derecho */
+	Exti_R.pGPIOHandler				= &GPIO_Exti_R;
+	Exti_R.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
+	exti_Config(&Exti_R);
+
+	/* Condigurando EXTI3 - Encoder Izquierdo */
+	Exti_L.pGPIOHandler				= &GPIO_Exti_L;
+	Exti_L.edgeType					= EXTERNAL_INTERRUPT_RISING_EDGE;
+	exti_Config(&Exti_L);
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	imuSDA.pGPIOx								= GPIOC;
 	imuSDA.pinConfig.GPIO_PinNumber				= PIN_9;
@@ -512,6 +532,8 @@ void initSystem(void){
 //	imuHandler.mainClock	= MAIN_CLOCK_100_MHz_FOR_I2C;
 //
 //	i2c_Config(&imuHandler);
+
+
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -864,31 +886,13 @@ void parseCommands(char  *ptrbufferReception){
 
 /* ==================== PID ==================== */
 
-	// Opción ) PID Cuentas
-	else if(strcmp(cmd, "PID_Count") == 0){
-
+	// Opción ) PID Angulo
+	else if(strcmp(cmd, "PID_Rot") == 0){
 		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
 
-		if (firstParameter > 0){
+		if (secondParameter >= 0){
 
-			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
-			percDutyL = 20;
-			percDutyR = 20;
-
-			forwardMove(percDutyL, percDutyR);
-
-			// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
-			deltaTime = LimitBlinky;
-
-			rxData = '\0';
-			while(rxData == '\0'){
-				//setCounts(&percDutyR, &percDutyL, (uint16_t)firstParameter, secondParameter);
-				flagPID = 1;
-				PID(&PWM_R, &PWM_L, firstParameter, counter_R);
-
-				counter_R = 0;
-				counter_L = 0;
-			}
+			linePID(firstParameter,secondParameter);
 		}
 		else{
 			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
@@ -896,38 +900,12 @@ void parseCommands(char  *ptrbufferReception){
 
 	}
 
+	else if(strcmp(cmd, "Square") == 0){
 
-	// Opción ) PID Angulo
-	else if(strcmp(cmd, "PID_Rot") == 0){
-
-		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
+		usart_WriteMsg(&usart1Comm, "Iniciando lo chevere \n");
 
 		if (firstParameter >= 0){
-
-			// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
-			percDutyL = 15.0;
-			percDutyR = 20.0;
-
-			forwardMove(percDutyL, percDutyR);
-
-			// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
-
-
-			rxData = '\0';
-			while(rxData == '\0'){
-
-				// Se generan las lecturas del giroscopio
-				if (flagGyro) {
-					yawIntegral();
-					// Realiza el PID y ajuste los 	PWM de los motores
-					PID(&PWM_R, &PWM_L, firstParameter, yaw_gyro);
-					counterIMU = 0;
-					flagGyro = 0;
-				}
-
-
-
-			}
+			drawSquare(firstParameter);
 		}
 		else{
 			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
@@ -1203,6 +1181,66 @@ void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float targe
 
 }
 
+
+
+
+//-----------------------------------------------------------------
+float linearDistance(uint16_t interruptCounter_R, uint16_t interruptCounter_L){
+	float linearDist_R = interruptCounter_R*distInterrupt;
+	float linearDist_L = interruptCounter_L*distInterrupt;
+	float meanDist = (linearDist_L + linearDist_R) / 2.0;
+	return meanDist;
+}
+
+
+void linePID(float angle, float distance){
+
+	mmDist = 0;
+	counter_R = 0;
+	counter_L = 0;
+	rxData = '\0';
+	uint8_t flagPID = 1;
+	// Fijamos los valores del dutycycle que estabilizan la velocidad de las ruedas
+	forwardMove(percDutyL, percDutyR);
+	// Establecemos el daltaTime con base a la frecuencia de muestreo del ángulo
+
+	while(flagPID && rxData == '\0'){
+
+		// Se generan las lecturas del giroscopio
+		if (flagGyro) {
+			yawIntegral();
+			// Realiza el PID y ajuste los 	PWM de los motores
+			PID(&PWM_R, &PWM_L, angle, yaw_gyro);
+			mmDist = linearDistance(counter_R, counter_L);
+
+
+			if (mmDist >= distance) {
+				turnOff();
+				sprintf(bufferMsg,"Distancia alcanzada: %.2f\n cuentas R: %u y L: %u",mmDist,counter_R,counter_L);
+				usart_WriteMsg(&usart1Comm, bufferMsg);
+				flagPID ^= 1;
+			}
+			counterIMU = 0;
+			flagGyro = 0;
+		}
+	}
+
+	turnOff();
+
+}
+
+
+void drawSquare(float dim){
+	linePID(0, dim);
+	linePID(54, dim);
+	linePID(108, dim);
+	linePID(155, dim);
+	linePID(0, 150);
+}
+
+
+
+//----------------------------------------------------------------
 
 /* Función para manejar los diferentes conteos de tiempo (Periodos) */
 void manageCounters(void){
