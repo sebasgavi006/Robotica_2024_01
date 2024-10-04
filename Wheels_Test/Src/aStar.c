@@ -64,13 +64,17 @@ sNode openL[MAX_ROWS] = {0};
 bool closedL[MAX_ROWS][MAX_COLS] = {false};//Lista de nodos cerrados
 sNode pathMatrix[MAX_ROWS] = {0}; // Matriz para almacenar el camino
 int auxPath = 0;
-
-int sizeRows = 10;
-int sizeCols = 10;
+char buffer[64] = {0}; // Buffer temporal para almacenar la fila sin corchetes
+char buffer2[64] = {0}; // Buffer temporal para almacenar la fila sin corchetes
+int sizeRows = 5;
+int sizeCols = 5;
 int prob = 3;
 
 int currentRow = 0;
+
 int enterMatrixFlag = 0;
+int builtMatrixFlag = 0;
+
 
 sNode nodesMatrix[MAX_ROWS][MAX_COLS];
 
@@ -78,7 +82,7 @@ int countNeighbors = 0;
 
 
 
-int matrix[MAX_ROWS][MAX_COLS] = {0};
+int inputMatrix[MAX_ROWS][MAX_COLS] = {0};
 //------------------------------------------------------------------------------------
 
 
@@ -134,6 +138,18 @@ void manageCounters(void);
 void clearScreen(void);
 
 void buildMatrixUSART(char  *ptrbufferReception);
+void findPoints(void);
+void print_grid(sNode mtrx[MAX_ROWS][MAX_COLS], sNode *start,sNode *goal);
+
+int f_cost(sNode *point);
+int g_cost(sNode *point);
+int h_cost(sNode *point);
+int manhattan_Dist(sNode *p1,sNode *p2);
+void updateNeighbors(sNode *current, sNode matrx[MAX_ROWS][MAX_COLS], sNode neighbors[MAX_NEIGHBORS], int *count);
+void print_neighbors(sNode neighbors[MAX_NEIGHBORS], int count);
+void rmFromOpenL(sNode* nodeToRM);
+void searchBestF(void);
+void aStar(sNode matrx[MAX_ROWS][MAX_COLS]);
 
 
 
@@ -147,15 +163,17 @@ int main(void){
 
 
 
+
 	// Se configura inicialmente el MPU
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
 	delay_ms(1);
 
 	sprintf(bufferMsg, "Algoritmo A* \n");
+	sprintf(bufferMsg, "Elaborado por Jhony Aristizábal \n");
 	usart_WriteMsg(&usart2Comm, bufferMsg);
-	clearScreen();
 	sprintf(bufferMsg, "Escribe \"help @\" ");
 	usart_WriteMsg(&usart2Comm, bufferMsg);
+
 
 
 	/* Loop forever */
@@ -272,7 +290,7 @@ void initSystem(void){
 	gpio_Config(&handlerPinRX);
 
 	usart2Comm.ptrUSARTx									= USART2;
-	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_9600;
+	usart2Comm.USART_Config.baudrate						= USART_BAUDRATE_115200;
 	usart2Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
 	usart2Comm.USART_Config.parity							= USART_PARITY_NONE;
 	usart2Comm.USART_Config.stopbits						= USART_STOPBIT_1;
@@ -299,18 +317,18 @@ void clearScreen(void){
 	}
 }
 
-
-
 void buildMatrixUSART(char *ptrbufferReception) {
 
 	int auxIndex = strlen(ptrbufferReception);
 
 
     int tokenCount = 0;
-    char *token = {0};
-    char buffer[64] = {0}; // Buffer temporal para almacenar la fila sin corchetes
+    char *token = NULL;
+
     strncpy(buffer, ptrbufferReception + 1, auxIndex - 3); // Copiar la fila sin '[' y ']'
     buffer[auxIndex - 3] = '\0'; // Agregar terminador de cadena
+    strncpy(buffer2, buffer+1,auxIndex -2); // Copiar la fila sin '[' y ']'
+
 //	sprintf(bufferMsg, "\nNum de indices en el string %u",auxIndex);
 //	usart_WriteMsg(&usart2Comm, bufferMsg);
 //	sprintf(bufferMsg, "\nCantidad en el string %c \n",ptrbufferReception[auxIndex -3]);
@@ -327,28 +345,48 @@ void buildMatrixUSART(char *ptrbufferReception) {
         // Usar strtok para separar los tokens
         token = strtok(buffer, ",");
         while (token != NULL) {
+
             tokenCount++;
             token = strtok(NULL, ",");
         }
 
         //verificamos que tenga el tamaño adecuado
+        // Verificamos que tenga el tamaño adecuado
         if (tokenCount == sizeCols) {
-			//aumentamos el contador de filas
-			sprintf(bufferMsg, "\nFila %d ingresada.\n", currentRow);
-			usart_WriteMsg(&usart2Comm, bufferMsg);
-			currentRow++;//aumentamos la fila
+            // Reiniciar strtok para recorrer nuevamente los tokens
 
-			if (currentRow >= sizeRows) {
-				sprintf(bufferMsg, "\nSe ha completado la matriz con %d filas.\n", currentRow);
-				usart_WriteMsg(&usart2Comm, bufferMsg);
-				enterMatrixFlag = 0;  // Desactivar la bandera
-			}
-		}
-        else {
+			token = strtok(buffer2, ",");
+        	for (int j = 0; j < sizeCols; j++) {
+        	    // Usamos atoi en lugar de castear el buffer directamente
+        	    sprintf(bufferMsg, "\n valor %d ingresado.\n", atoi(token));
+        	    usart_WriteMsg(&usart2Comm, bufferMsg);
+
+        	    // Almacenar el valor entero en nodesMatrix
+        	    inputMatrix[currentRow][j] = atoi(token);
+
+        	    // Obtener el siguiente token
+        	    tokenCount++;
+        	    token = strtok(NULL, ",");
+        	}
+
+            // Aumentamos el contador de filas
+            sprintf(bufferMsg, "\nFila %d ingresada.\n", currentRow);
+            usart_WriteMsg(&usart2Comm, bufferMsg);
+            currentRow++; // Aumentamos la fila
+
+            // Verifica si se han ingresado todas las filas
+            if (currentRow >= sizeRows) {
+                sprintf(bufferMsg, "\nSe ha completado la matriz con %d filas.\n", currentRow);
+                usart_WriteMsg(&usart2Comm, bufferMsg);
+                enterMatrixFlag = 0;  // Desactivar la bandera
+                builtMatrixFlag = 1;	//la matriz está construida
+                findPoints();
+                print_grid(nodesMatrix, &startN,&goalN);
+            }
+        } else {
             sprintf(bufferMsg, "\nNúmero de columnas no coincide. Se esperaban %d columnas pero se recibieron %d.\n", sizeCols, tokenCount);
             usart_WriteMsg(&usart2Comm, bufferMsg);
-
-		}
+        }
 
 
 
@@ -380,10 +418,23 @@ void parseCommands(char  *ptrbufferReception){
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
     // Comando para solicitar ayuda
-    if(strcmp(cmd, "help") == 0){
-        usart_WriteMsg(&usart2Comm, "\nHelp Menu CMDS: \n");
-        usart_WriteMsg(&usart2Comm, "1) Tamaño matriz: \"m # @\" para filas, \"n # @\" para columnas\n");
-    }
+	// Comando para solicitar ayuda
+	if (strcmp(cmd, "help") == 0) {
+	    usart_WriteMsg(&usart2Comm, "\nHelp Menu CMDS: \n");
+	    usart_WriteMsg(&usart2Comm, "1) Tamaño matriz: \"m # @\" para definir el número de filas.\n");
+	    usart_WriteMsg(&usart2Comm, "2) Tamaño matriz: \"n # @\" para definir el número de columnas.\n");
+	    usart_WriteMsg(&usart2Comm, "3) Ingreso de matriz: \"b\" para comenzar a ingresar la matriz.\n");
+	    usart_WriteMsg(&usart2Comm, "   - La matriz debe ser ingresada en el formato: \"[0,0,0,0,1,3,5]@\"\n");
+	    usart_WriteMsg(&usart2Comm, "   - Donde:\n");
+	    usart_WriteMsg(&usart2Comm, "     * 1 representa un obstáculo.\n");
+	    usart_WriteMsg(&usart2Comm, "     * 0 representa una casilla vacía.\n");
+	    usart_WriteMsg(&usart2Comm, "     * 2 representa el inicio.\n");
+	    usart_WriteMsg(&usart2Comm, "     * 3 representa el fin.\n");
+	    usart_WriteMsg(&usart2Comm, "4) Imprimir matriz: \"printMatrix\" para mostrar la matriz construida.\n");
+	    usart_WriteMsg(&usart2Comm, "   - Asegúrate de que la matriz haya sido construida antes de usar este comando.\n");
+	    usart_WriteMsg(&usart2Comm, "5) Ejecutar A*: \"aStar\" para iniciar el algoritmo A* con los puntos de inicio y fin encontrados.\n");
+	    usart_WriteMsg(&usart2Comm, "   - Busca los puntos de inicio (2) y fin (3) en la matriz, y visualiza el camino encontrado.\n");
+	}
 
     // Comando para definir el tamaño de filas (m)
     else if(strcmp(cmd, "m") == 0) {
@@ -409,15 +460,55 @@ void parseCommands(char  *ptrbufferReception){
 
 
     // Comando para empezar a ingresar la matriz
-    else if(strcmp(cmd, "matriz") == 0) {
+    else if(strcmp(cmd, "build") == 0) {
         if (sizeRows > 0 && sizeCols > 0) {
             enterMatrixFlag = 1;  // Activamos la secuencia para ingresar la matriz
-            currentRow = 0;  // Iniciamos en la primera fila
+            usart_WriteMsg(&usart2Comm, "\nVamos a construir la matriz");
             sprintf(bufferMsg, "\nEscribe %d filas ingresando cada fila de la matriz:\n", sizeRows);
+            usart_WriteMsg(&usart2Comm, "\nPor ejemplo:  \"[0,0,0,0,1,3,5]@ \" ");
+            usart_WriteMsg(&usart2Comm, "\n 1 representa obstaculo  ");
+            usart_WriteMsg(&usart2Comm, "\n 0 representa casilla vacia  ");
+            usart_WriteMsg(&usart2Comm, "\n 2 representa inicio  ");
+            usart_WriteMsg(&usart2Comm, "\n 3 representa fin  ");
             usart_WriteMsg(&usart2Comm, bufferMsg);
         } else {
             usart_WriteMsg(&usart2Comm, "\nPrimero define el tamaño de la matriz con los comandos 'm' y 'n'.\n");
         }
+    }
+
+    // Comando para imprimir la matriz
+    else if (strcmp(cmd, "printMatrix") == 0 ) {
+        if (builtMatrixFlag) {  // Verificamos si la matriz ha sido construida
+            sprintf(bufferMsg, "\nMatriz construida:\n");
+            usart_WriteMsg(&usart2Comm, bufferMsg);
+            for (int i = 0; i < sizeRows; i++) {
+                for (int j = 0; j < sizeCols; j++) {
+                    sprintf(bufferMsg, "%d ", inputMatrix[i][j]);  // Imprimimos cada elemento de la matriz
+                    usart_WriteMsg(&usart2Comm, bufferMsg);
+                }
+                usart_WriteMsg(&usart2Comm, "\n");  // Nueva línea al final de cada fila
+            }
+        } else {
+            usart_WriteMsg(&usart2Comm, "La matriz no ha sido construida aún.\n");
+        }
+    }
+
+
+    // Comando para ejecutar el algoritmo A*
+    else if(strcmp(cmd, "aStar") == 0) {
+
+
+
+    	aStar(nodesMatrix);
+
+        for(int i = 0; i < auxPath; i++){
+//        	clearScreen();
+            nodesMatrix[pathMatrix[i].row][pathMatrix[i].col].bPath = true;
+            print_grid(nodesMatrix,&startN,&goalN);
+            delay_ms(1500);
+        }
+        print_grid(nodesMatrix,&startN,&goalN);
+
     }
 
 
@@ -437,6 +528,346 @@ void parseCommands(char  *ptrbufferReception){
 	}
 
 
+}
+
+void findPoints(void) {
+    bool startFound = false;
+    bool goalFound = false;
+
+    for (int i = 0; i < sizeRows; i++) {
+        for (int j = 0; j < sizeCols; j++) {
+
+            // Asignar coordenadas (i,j)
+            nodesMatrix[i][j].row = i;
+            nodesMatrix[i][j].col = j;
+            nodesMatrix[i][j].xParent = 0;
+            nodesMatrix[i][j].yParent = 0;
+            nodesMatrix[i][j].bPath = false;
+            nodesMatrix[i][j].fCost = 0;
+            nodesMatrix[i][j].hCost = 0;
+
+            if (inputMatrix[i][j] == 2 && !startFound) {
+                startN.row = i;
+                startN.col = j;
+                startN.bObstacle = false; // No es un obstáculo
+                startFound = true; // Marcamos que hemos encontrado el inicio
+            } else if (inputMatrix[i][j] == 3 && !goalFound) {
+                goalN.row = i;
+                goalN.col = j;
+                goalN.bObstacle = false; // No es un obstáculo
+                goalFound = true; // Marcamos que hemos encontrado el objetivo
+            } else if (inputMatrix[i][j] == 1) {
+                nodesMatrix[i][j].bObstacle = true; // Es un obstáculo
+            } else if (inputMatrix[i][j] == 0) {
+                nodesMatrix[i][j].bObstacle = false; // No es un obstáculo
+            }
+
+            // Si ambos puntos han sido encontrados, no es necesario seguir buscando
+            if (startFound && goalFound) {
+                break;
+            }
+        }
+        if (startFound && goalFound) {
+            break;
+        }
+    }
+
+    // Mensajes de confirmación
+    if (startFound) {
+        sprintf(bufferMsg, "Inicio encontrado en: (%d, %d)\n", startN.row, startN.col);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+    } else {
+        usart_WriteMsg(&usart2Comm, "No se encontró el punto de inicio.\n");
+    }
+
+    if (goalFound) {
+        sprintf(bufferMsg, "Objetivo encontrado en: (%d, %d)\n", goalN.row, goalN.col);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+    } else {
+        usart_WriteMsg(&usart2Comm, "No se encontró el punto objetivo.\n");
+    }
+}
+
+
+
+
+void print_grid(sNode mtrx[MAX_ROWS][MAX_COLS], sNode *start,sNode *goal){
+    sprintf(bufferMsg,"Matrix %dx%d\t",sizeRows,sizeCols);
+    usart_WriteMsg(&usart2Comm, bufferMsg);
+    sprintf(bufferMsg,"Start= (%d,%d):\t",start->row,start->col);
+    usart_WriteMsg(&usart2Comm, bufferMsg);
+    sprintf(bufferMsg,"Goal= (%d,%d):\n",goal->row,goal->col);
+    usart_WriteMsg(&usart2Comm, bufferMsg);
+
+    for (int i = 0; i < sizeRows; i++){
+        for (int j = 0; j < sizeCols; j++){
+
+            if((mtrx[i][j].row == start->row) && (mtrx[i][j].col == start->col)){
+                mtrx[i][j].bObstacle = false;
+
+                usart_WriteMsg(&usart2Comm, "S ");
+            }
+
+            else if((mtrx[i][j].row == goal->row) && (mtrx[i][j].col == goal->col)){
+                mtrx[i][j].bObstacle = false;
+
+                usart_WriteMsg(&usart2Comm, "G ");
+
+            }
+            else if (mtrx[i][j].bPath == true){
+
+                usart_WriteMsg(&usart2Comm, "@ ");
+            }
+
+            else if (mtrx[i][j].bObstacle == false){
+
+                usart_WriteMsg(&usart2Comm, "\u00B7 ");
+            }
+            else if(mtrx[i][j].bObstacle == true){
+                usart_WriteMsg(&usart2Comm, "X ");
+            }
+
+        }
+        usart_WriteMsg(&usart2Comm,"\n" );
+    }
+}
+
+
+void updateNeighbors(sNode *current, sNode matrx[MAX_ROWS][MAX_COLS], sNode neighbors[MAX_NEIGHBORS], int *count){
+    int x = current->row;
+    int y = current->col;
+
+    *count = 0;
+
+    sprintf(bufferMsg,"Nodo actual (%d,%d)-----------------------------------------------------\n",x,y);
+    usart_WriteMsg(&usart2Comm, bufferMsg);
+
+    if( x+1 < sizeRows && (matrx[x + 1][y].bObstacle == false)){//down
+        neighbors[*count].row = x+1;
+        neighbors[*count].col = y;
+        (*count)++;
+    }
+    if( x > 0 && (matrx[x - 1][y].bObstacle == false)){//up
+    neighbors[*count].row = x - 1;
+    neighbors[*count].col = y;
+    (*count)++;
+    }
+
+    if( y + 1 < sizeCols && (matrx[x][y + 1].bObstacle == false)){//right
+    neighbors[*count].row = x;
+    neighbors[*count].col = y + 1;
+    (*count)++;
+    }
+    if( y > 0 && (matrx[x][y - 1].bObstacle == false)){//left
+    neighbors[*count].row = x;
+    neighbors[*count].col = y - 1;
+    (*count)++;
+    }
+    // printf("Neighbors Count (%d)\n",*count);
+}
+// Función para imprimir la lista de vecinos
+void print_neighbors(sNode neighbors[MAX_NEIGHBORS], int count) {
+    printf("Neighbors (%d):\n", count);
+    for (int i = 0; i < count; i++) {
+        sprintf(bufferMsg,"(%d, %d)\n", neighbors[i].row, neighbors[i].col);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        printf(bufferMsg,"gcost %d\n",g_cost(&neighbors[i]));
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        printf(bufferMsg,"hcost %d\n",h_cost(&neighbors[i]));
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        printf(bufferMsg,"fcost %d\n",f_cost(&neighbors[i]));
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+    }
+}
+
+void aStar(sNode matrx[MAX_ROWS][MAX_COLS]){
+
+	usart_WriteMsg(&usart2Comm, "Solving A* ");
+
+
+
+    sNode currentN = startN; // Nodo actual
+
+    openL[openLsize++] = startN; //agregamos el nodo inicial a la lista abierta
+
+    int iteration = 0; // Variable de control para las iteraciones
+    int maxIterations = 1000; // Establece el número máximo de iteraciones
+
+
+    while (openLsize >0 && iteration < maxIterations){
+
+
+    	sprintf(bufferMsg,"\niteracion de while: %d \t",iteration);
+    	usart_WriteMsg(&usart2Comm, bufferMsg);
+
+        updateNeighbors(&currentN, matrx, neighborsList, &countNeighbors);//revisemos los vecinos
+        print_neighbors(neighborsList, countNeighbors);
+
+        //agregamos el vecino a la lista abierta
+        for (int i = 0; i < countNeighbors; i++){
+            if (closedL[neighborsList[i].row][neighborsList[i].col] == false){
+            	sprintf(bufferMsg,"agregando el vecino %d a la lista abierta: (%d,%d)\n",i,neighborsList[i].row,neighborsList[i].col);
+            	usart_WriteMsg(&usart2Comm, bufferMsg);
+                openL[openLsize++] = neighborsList[i];
+            }
+
+        }
+
+
+        searchBestF();
+        for (int i = 0; i < openLsize; i++){
+        	sprintf(bufferMsg,"Recorriendo OpenL: en nodo (%d,%d)\n",openL[i].row,openL[i].col);
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+        }
+
+        sprintf(bufferMsg,"nodo (%d,%d)removido\n",currentN.row,currentN.col);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        sprintf(bufferMsg,"openLsize era : %d\n",openLsize);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+
+        rmFromOpenL(&currentN);
+
+        sprintf(bufferMsg,"openLsize ahora es: %d\n",openLsize);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        for (int i = 0; i < openLsize; i++){
+        	sprintf(bufferMsg,"Recorriendo OpenL: en nodo (%d,%d)\n",openL[i].row,openL[i].col);
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+        }
+
+        // Marcar el nodo actual en la matriz de camino
+        sprintf(bufferMsg,"construimos el camino con a: (%d,%d)\n",currentN.row,currentN.col);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+        // matrx[currentN.row][currentN.col].bPath = true;
+        pathMatrix[auxPath++] = currentN; // Marcar el nodo actual como parte del camino
+
+
+        // recorremos pathmatrix e imprimimos
+        for (int i = 0; i < auxPath; i++){
+        	sprintf(bufferMsg,"PathMatrix (%d) en nodo (%d,%d)\n",i,pathMatrix[i].row,pathMatrix[i].col);
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+        }
+
+        sprintf(bufferMsg,"aux path: %d\n",auxPath);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+
+        //nos desplazamos al nodo con costo mas bajo y asignamos la procedencia
+        sNode *nextNode = &openL[bestIndex];
+        nextNode->xParent = currentN.row;
+        nextNode->yParent = currentN.col;
+        currentN = *nextNode;
+        sprintf(bufferMsg,"Nos desplazamos a: (%d,%d) desde (%d,%d)\n",currentN.row,currentN.col,currentN.xParent,currentN.yParent);
+        usart_WriteMsg(&usart2Comm, bufferMsg);
+
+
+        if (currentN.row == goalN.row && currentN.col == goalN.col) {
+        	sprintf(bufferMsg,"Goal reached!\n");
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+        	sprintf(bufferMsg,"objetivo alcanzado en %d iteraciones\n",iteration);
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+            // Aquí deberías reconstruir y mostrar el camino
+            return;
+        }
+
+
+        iteration++;//incrementar la variable de control
+        }
+
+
+        // Si el bucle termina por alcanzar maxIterations
+        if (iteration >= maxIterations) {
+        	sprintf(bufferMsg,"Max iterations reached: %d\n", maxIterations);
+        	usart_WriteMsg(&usart2Comm, bufferMsg);
+        }
+}
+
+
+void rmFromOpenL(sNode* nodeToRM){
+    int indexToRm = -1;
+    // printf("Vamos a eliminar (%d,%d) de la lista abierta\n",nodeToRM->row,nodeToRM->col);
+    // printf("openLsize: %d\n",openLsize);
+    closedL[nodeToRM->row][nodeToRM->col] = true;
+
+    for (int i = 0; i < openLsize; i++){
+        // printf("Recorriendo OpenL: en nodo (%d,%d)\n",openL[i].row,openL[i].col);
+    }
+
+    for (int i = 0; i < openLsize; i++){
+        if (openL[i].row == nodeToRM->row && openL[i].col == nodeToRM->col){
+            indexToRm = i;
+            break;
+        }
+    }
+
+    // printf("Nodo (%d,%d) Eliminado de la lista abierta\n",nodeToRM->row,nodeToRM->col);
+
+    if (indexToRm != -1){
+        if (indexToRm < openLsize -1){
+            openL[indexToRm] = openL[--openLsize];
+        }
+        else{
+            --openLsize;
+        }
+    }
+    // printf("openLsize: %d\n",openLsize);
+
+    for (int i = 0; i < openLsize; i++){
+        // printf("Recorriendo OpenL: en nodo (%d,%d)\n",openL[i].row,openL[i].col);
+    }
+
+}
+
+void searchBestF(void){
+
+    bestIndex = 0;  //reiniciamos la variable para empezar la busqueda
+    //recorremos OpenL
+    for (int i = 1; i < openLsize; i++){
+        //Comparamos los f cost para buscar el mejor
+        if (f_cost(&openL[i]) < f_cost(&openL[bestIndex])){
+            bestIndex = i;  //guardamos el valor del menor fcost
+        }
+
+        //si hay un empate en f usamos h para desempatar
+        else if (f_cost(&openL[i]) == f_cost(&openL[bestIndex])){
+            if (h_cost(&openL[i]) < h_cost(&openL[bestIndex])){
+                bestIndex = i;
+            }
+
+        }
+
+    }
+    sprintf(bufferMsg,"El mejor fcost es %d con coordenada (%d,%d)\n",f_cost(&openL[bestIndex]),openL[bestIndex].row,openL[bestIndex].col);
+    usart_WriteMsg(&usart2Comm, bufferMsg);
+}
+
+
+
+
+
+int manhattan_Dist(sNode *p1,sNode *p2){
+    int x1 = p1->col;
+    int y1 = p1->row;
+
+    int x2 = p2->col;
+    int y2 = p2->row;
+
+    int dist = abs(x2 - x1) + abs(y2 - y1);
+
+    return (dist);
+}
+
+int h_cost(sNode *point){
+    // h(n): Es la funcion heuristica que estima el camino mas corto desde n hasta el FINAL
+
+    return manhattan_Dist(point,&goalN);
+}
+
+int g_cost(sNode *point){
+    // g(n): es el costo del camino desde el INICIO hasta n
+    return manhattan_Dist(&startN,point);
+}
+
+int f_cost(sNode *point){
+    return (g_cost(point) + h_cost(point));
 }
 
 //----------------------------------------------------------------
