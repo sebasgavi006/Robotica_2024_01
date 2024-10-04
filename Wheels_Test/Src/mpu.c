@@ -19,6 +19,7 @@
  ******************************************************************************
  */
 #include <stdint.h>
+#include <stdlib.h>
 #include "string.h"
 #include <stdio.h>
 #include <math.h>
@@ -190,17 +191,9 @@ int main(void){
 
 	SCB->CPACR |= 0xf<<20;
 
-	// Configuramos el PLL para que el micro corra a 100MHz
-//	systemClock_100MHz(&pllHandler);
-//	systemClock_Output(); // el pin PC9 configurado como salida para leer la freq
-
-//	RCC->CR &= ~(RCC_CR_HSITRIM); // Limpiamos el registro
-//	RCC->CR |= (11 << RCC_CR_HSITRIM_Pos); // Numero para calibrar POR DEFECTO ESTABA EN 15!!!!!
-
 	initSystem();
 	turnOff();
-	sprintf(bufferMsg, "Saludos terrícolas, soy OPPY \n");
-	usart_WriteMsg(&usart1Comm, bufferMsg);
+
 	counterPeriodTest = 0;
 	counterPercDuty = 0;
 
@@ -242,13 +235,13 @@ int main(void){
 	sprintf(bufferMsg, "Saludos terricolas, soy OPPY \n");
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 
-	usart_WriteMsg(&usart1Comm, "Please dont move the sensor. Calibration Starting...\n");
-	sprintf(bufferMsg,"Offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
+	usart_WriteMsg(&usart1Comm, "Por favor no muevas el robot. Iniciando calibracion...\n");
+	sprintf(bufferMsg,"Offset inicial  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 	gyroStaticCalibration(&imuHandler,nReadings);
-	sprintf(bufferMsg,"Offset values  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
+	sprintf(bufferMsg,"Offset calibrado:  %.2f,%.2f,%.2f\n",offsetGyroData[0],offsetGyroData[1],offsetGyroData[2]);
 	usart_WriteMsg(&usart1Comm, bufferMsg);
-	usart_WriteMsg(&usart1Comm, "Calibration finished\n");
+	usart_WriteMsg(&usart1Comm, "Calibracion finalizada\n");
 
 	/* Loop forever */
 	while (1) {
@@ -274,6 +267,8 @@ int main(void){
 			// Limpiamos la variable que almacena los datos recibidos por el com. serial
 			rxData = '\0';
 		}
+
+
 		else{
 			// Aun no se han recibido caractéres a traves de la comunicacion serial
 			stringComplete = 0;
@@ -404,28 +399,6 @@ void initSystem(void){
 	configPLL(&pllHandler);
 
 	/* ==================================== Configurando los USART =============================================*/
-//	handlerPinTX.pGPIOx										= GPIOA;
-//	handlerPinTX.pinConfig.GPIO_PinNumber					= PIN_2;
-//	handlerPinTX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
-//	handlerPinTX.pinConfig.GPIO_PinAltFunMode				= AF7;
-//	gpio_Config(&handlerPinTX);
-//
-//	handlerPinRX.pGPIOx										= GPIOA;
-//	handlerPinRX.pinConfig.GPIO_PinNumber					= PIN_3;
-//	handlerPinRX.pinConfig.GPIO_PinMode						= GPIO_MODE_ALTFN;
-//	handlerPinRX.pinConfig.GPIO_PinAltFunMode				= AF7;
-//	gpio_Config(&handlerPinRX);
-//
-//	usart1Comm.ptrUSARTx									= USART2;
-//	usart1Comm.USART_Config.baudrate						= USART_BAUDRATE_9600;
-//	usart1Comm.USART_Config.datasize						= USART_DATASIZE_8BIT;
-//	usart1Comm.USART_Config.parity							= USART_PARITY_NONE;
-//	usart1Comm.USART_Config.stopbits						= USART_STOPBIT_1;
-//	usart1Comm.USART_Config.mode							= USART_MODE_RXTX;
-//	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
-//	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
-//	usart_Config(&usart1Comm);
-
 	/*USART 1 -> Comunicación serial a través de la antena */
 	handlerPinTX.pGPIOx										= GPIOA;
 	handlerPinTX.pinConfig.GPIO_PinNumber					= PIN_9;
@@ -448,8 +421,6 @@ void initSystem(void){
 	usart1Comm.USART_Config.enableIntRX						= USART_RX_INTERRUPT_ENABLE;
 	usart1Comm.USART_Config.enableIntTX						= USART_TX_INTERRUPT_DISABLE;
 	usart_Config(&usart1Comm);
-
-
 
 	// 3. ===== PWM =====
 	/* Configurando el PWM para el motor DERECHO */
@@ -499,45 +470,12 @@ void initSystem(void){
 	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
 	gpio_Config(&imuSCL);
 
-
 	imuHandler.slaveAddress = MPU6050_ADDRESS; //105;
 	imuHandler.ptrI2Cx		= I2C3;
 	imuHandler.modeI2C		= I2C_MODE_SM;
 	imuHandler.mainClock	= MAIN_CLOCK_100_MHz_FOR_I2C;
 
 	i2c_Config(&imuHandler);
-
-//	imuSDA.pGPIOx								= GPIOB; // Lado izquierdo del micro
-//	imuSDA.pinConfig.GPIO_PinNumber				= PIN_7;
-//	imuSDA.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
-//	imuSDA.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
-//	imuSDA.pinConfig.GPIO_PinAltFunMode			= AF4;
-//	imuSDA.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-//	imuSDA.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
-//	gpio_Config(&imuSDA);
-//
-//	imuSCL.pGPIOx								= GPIOB; // Lado derecho del micro
-//	imuSCL.pinConfig.GPIO_PinNumber				= PIN_6;
-//	imuSCL.pinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
-//	imuSCL.pinConfig.GPIO_PinOutputType			= GPIO_OTYPE_OPENDRAIN;
-//	imuSCL.pinConfig.GPIO_PinAltFunMode			= AF4;
-//	imuSCL.pinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_PULLUP;
-//	imuSCL.pinConfig.GPIO_PinOutputSpeed		= GPIO_OSPEED_FAST;
-//	gpio_Config(&imuSCL);
-//
-//
-//	imuHandler.slaveAddress = MPU6050_ADDRESS;
-//	imuHandler.ptrI2Cx		= I2C1;
-//	imuHandler.modeI2C		= I2C_MODE_SM;
-//	imuHandler.mainClock	= MAIN_CLOCK_100_MHz_FOR_I2C;
-//
-//	i2c_Config(&imuHandler);
-
-
-
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////
-
 } // Fin initSystem()
 
 
@@ -547,55 +485,21 @@ void parseCommands(char  *ptrbufferReception){
 	sscanf(ptrbufferReception,"%s %f %f %s",cmd,&firstParameter,&secondParameter,lastString);
 	//Comando para solicitar ayuda
 	if(strcmp(cmd, "help") == 0){
-		usart_WriteMsg(&usart1Comm, "Help Menu CMDS: \n");
-		usart_WriteMsg(&usart1Comm, "1) Dir 0:forw / 1:back ; dutty(\%) \" Dir # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "2) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
-		usart_WriteMsg(&usart1Comm, "3) Cuentas dutty(\%) \" Cuentas (#) @\" \n");
-
-		usart_WriteMsg(&usart1Comm, "4) TestEncoders percDuttyCycle:left \" TestEncoders # @\" \n");
-		usart_WriteMsg(&usart1Comm, "5) Test 0:left / 1:right; dutty   \" Test # # @\" \n");
-
-		usart_WriteMsg(&usart1Comm, "6) RotLecture -> Datos de rotación actual \" RotLecture @\" \n");
-
-		usart_WriteMsg(&usart1Comm, "7) Ajuste Cuentas (#) ; deltaDuty (float) @ \n");
-
-		usart_WriteMsg(&usart1Comm, "8) PID_Count Target (#) @ \n");
-
-		usart_WriteMsg(&usart1Comm, "9) PID_Rot Target (#) @ \n");
-
-		usart_WriteMsg(&usart1Comm, "10) PID Target (#) @ \n");
-
-		usart_WriteMsg(&usart1Comm, "11) Stop \" Stop @\" \n");
-		usart_WriteMsg(&usart1Comm, "12) Resume \" Resume @\" \n");
+		usart_WriteMsg(&usart1Comm, "\nHelp Menu CMDS: \n");
+		usart_WriteMsg(&usart1Comm, "1) Spd \%leftM 		; \%rightM \" Spd # # @\" \n");
+		usart_WriteMsg(&usart1Comm, "2) getImu: Datos del eje Yaw \n");
+		usart_WriteMsg(&usart1Comm, "3) Ajuste (#) ; deltaDuty (float) @ \n");
+		usart_WriteMsg(&usart1Comm, "4) PID_Rot angle(#) interrupts(#) @ \n");
+		usart_WriteMsg(&usart1Comm, "5) Stop \" Stop @\" \n");
+		usart_WriteMsg(&usart1Comm, "6) Resume \" Resume @\" \n");
 
 	}
 
-	// Opción 1) Dir
-	else if (strcmp(cmd, "Dir") == 0) {
+	// Opción 1) Spd
 
-		// firstParameter indica la direccion, secondParameter es el dutyCycle
-		if (firstParameter == 0 && secondParameter >= 0){
-			if (defaultSpeed == 0){
-				forwardMove(secondParameter, secondParameter);
-			}
-			else{
-				forwardMove(10, 10);
-			}
-			usart_WriteMsg(&usart1Comm, "Moviéndose hacia adelante \n");
-		}
-		else if (firstParameter == 1 && secondParameter >= 0){
-			if (defaultSpeed == 0){
-				backwardMove(secondParameter, secondParameter);
-			}
-			else{
-				backwardMove(10, 10);
-			}
-			usart_WriteMsg(&usart1Comm, "Moviéndose hacia atrás \n");
-		}
-		defaultSpeed = 0;
-	}
-
-	// Opción 2) Spd
+	/*
+	 * Cambia el valor del dutty para controlar la velocidad de desplazamiento
+	 */
 	else if(strcmp(cmd, "Spd") == 0) {
 			if (firstParameter > 0) {
 
@@ -614,147 +518,12 @@ void parseCommands(char  *ptrbufferReception){
 			}
 	}
 
-	// Opción 3) Cuentas
-	else if (strcmp(cmd, "Cuentas") == 0) {
-
-		if (firstParameter > 0 && secondParameter > 0) {
-
-			sprintf(bufferMsg,"Iniciando conteo \n");
-			usart_WriteMsg(&usart1Comm, bufferMsg);
-
-			counter_R = 0;
-			counter_L = 0;
-			flagEncR = 1;
-			flagEncR = 1;
-
-			forwardMove(firstParameter, firstParameter);
-
-			rxData = '\0';
-
-
-			while(rxData == '\0'){
-
-				if(counter_R >= secondParameter){
-
-					// Apaga el puente H para los motores
-					//gpio_WritePin(&GPIO_Enb_R, SET);
-
-					// Apaga los PWM
-					stopPwmSignal(&PWM_R);
-
-					sprintf(bufferMsg,"Conteo Encoder Derecho: %u \n",counter_R);
-					usart_WriteMsg(&usart1Comm, bufferMsg);
-					counter_R = 0;
-					flagEncR = 0;
-				}
-
-				if(counter_L >= secondParameter){
-
-					// Apaga el puente H para los motores
-					//gpio_WritePin(&GPIO_Enb_L, SET);
-
-					// Apaga los PWM
-					stopPwmSignal(&PWM_L);
-
-
-					sprintf(bufferMsg,"Conteo Encoder Izquierdo: %u \n",counter_L);
-					usart_WriteMsg(&usart1Comm, bufferMsg);
-					counter_L = 0;
-					flagEncL = 0;
-				}
-			}
-
-
-			flagEncR = 1;
-			flagEncL = 1;
-			sprintf(bufferMsg,"Conteo realizado \n");
-			usart_WriteMsg(&usart1Comm, bufferMsg);
-		}
-		else{
-			usart_WriteMsg(&usart1Comm, "El valor debe ser positivo.\n Ingresa \"help @\" para ver la lista de comandos.\n");
-		}
-	}
-
-	// Opción 4) TestEncoders
-	else if(strcmp(cmd, "TestEncoders") == 0) {
-
-		usart_WriteMsg(&usart1Comm, "Iniciando Test Encoders\n");
-		forwardMove(firstParameter,firstParameter);
-
-		rxData = '\0';
-		// Conteo y muestra de las interrupciones del encoder
-		while(rxData == '\0'){
-//			if(flagEncR){
-//				sprintf(bufferMsg,"Right,%u\n", counter_R);
-//				usart_WriteMsg(&usart1Comm, bufferMsg);
-//				flagEncR = 0;
-//				rxData = '\0';
-//			}
-//			if(flagEncL){
-//				sprintf(bufferMsg,"Left,%u\n", counter_L);
-//				usart_WriteMsg(&usart1Comm, bufferMsg);
-//				flagEncL = 0;
-//				rxData = '\0';
-//			}
-			if(flagEncR || flagEncL){
-				sprintf(bufferMsg,"%u \t  %u \t %u \t \n",counterPercDuty, counter_R,counter_L);
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-				flagEncR = 0;
-				flagEncL = 0;
-			}
-
-		}
-	}
-
-	// Opción 5) Test
-	else if(strcmp(cmd, "Test") == 0){
-
-		usart_WriteMsg(&usart1Comm, "Iniciando Test \n");
-		forwardMove(0,0);
-		counter_R = 0;
-		counter_L = 0;
-		counterPercDuty = 0;
-
-		rxData = '\0';
-		// Código para realizar el estudio del comportamiento de los motores y los encoders
-		while(rxData == '\0'){
-
-			if(counterPeriodTest == 20){
-				flagPeriod ^= 1;
-				counterPeriodTest = 0;
-			}
-
-			// Cada que pase un periodo determinado, el porcentaje del CutyCycle aumenta en 1%
-			if(flagPeriod){
-
-				sprintf(bufferMsg,"%u \t %u \t %u \n",counter_L,counter_R, counterPercDuty);
-
-				usart_WriteMsg(&usart1Comm, bufferMsg);
-
-				counter_R = 0;
-				counter_L = 0;
-				counterPercDuty++;
-				updateDutyCycle(&PWM_R, counterPercDuty);
-				updateDutyCycle(&PWM_L, counterPercDuty);
-				flagPeriod ^= 1;
-			}
-			if(counterPercDuty == 99){
-				counterPercDuty = 0;
-				turnOff();
-				usart_WriteMsg(&usart1Comm, "Test finished \n");
-			}
-		}
-
-	}
-
 	// Opción 6) Rot
-	else if(strcmp(cmd, "RotLecture") == 0){
-
-		usart_WriteMsg(&usart1Comm, "Mostrando valores de rotación \n");
+	else if(strcmp(cmd, "getImu") == 0){
+		usart_WriteMsg(&usart1Comm, "\nMostrando valores de Yaw \n");
 		yaw_gyro = 0;
 		rxData = '\0';
 		while(rxData == '\0'){
-
 			// Se generan las lecturas del giroscopio
 			if (flagGyro) {
 				yawIntegral();
@@ -767,7 +536,7 @@ void parseCommands(char  *ptrbufferReception){
 	// Opción 7) Ajuste
 	else if(strcmp(cmd, "Ajuste") == 0){
 
-		usart_WriteMsg(&usart1Comm, "Realizando Ajuste \n");
+		usart_WriteMsg(&usart1Comm, "\nRealizando Ajuste \n");
 
 		if (firstParameter > 0 && secondParameter > 0){
 
@@ -791,9 +560,7 @@ void parseCommands(char  *ptrbufferReception){
 				updateFrequency(&PWM_L, firstParameter);
 				updateFrequency(&PWM_R, firstParameter);
 
-
-
-				sprintf(bufferMsg,"Frecuencia actualizado: %.2f \n",firstParameter);
+				sprintf(bufferMsg,"\nFrecuencia actualizado: %.2f \n",firstParameter);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -808,9 +575,7 @@ void parseCommands(char  *ptrbufferReception){
 				updatePeriod(&PWM_L, firstParameter);
 				updatePeriod(&PWM_R, firstParameter);
 
-
-
-				sprintf(bufferMsg,"Periodo actualizado: %.2f \n",firstParameter);
+				sprintf(bufferMsg,"\nPeriodo actualizado: %.2f \n",firstParameter);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -818,12 +583,14 @@ void parseCommands(char  *ptrbufferReception){
 			}
 	}
 
+
+
 	else if(strcmp(cmd, "kp") == 0) {
 			if (firstParameter >= 0) {
 
 				kp = firstParameter;
 
-				sprintf(bufferMsg,"kp actualizado: %.2f \n",kp);
+				sprintf(bufferMsg,"\nkp actualizado: %.2f \n",kp);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -836,7 +603,7 @@ void parseCommands(char  *ptrbufferReception){
 
 				ki = firstParameter;
 
-				sprintf(bufferMsg,"ki actualizado: %.2f \n",ki);
+				sprintf(bufferMsg,"\nki actualizado: %.2f \n",ki);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -849,7 +616,7 @@ void parseCommands(char  *ptrbufferReception){
 
 				kd = firstParameter;
 
-				sprintf(bufferMsg,"kp actualizado: %.2f \n",kd);
+				sprintf(bufferMsg,"\nkd actualizado: %.2f \n",kd);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -862,7 +629,7 @@ void parseCommands(char  *ptrbufferReception){
 
 				maxPWM = firstParameter;
 
-				sprintf(bufferMsg,"maxPWM actualizado: %.2f \n",maxPWM);
+				sprintf(bufferMsg,"\nmaxPWM actualizado: %.2f \n",maxPWM);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -875,7 +642,7 @@ void parseCommands(char  *ptrbufferReception){
 
 				minPWM = firstParameter;
 
-				sprintf(bufferMsg,"minPWM actualizado: %.2f \n",minPWM);
+				sprintf(bufferMsg,"\nminPWM actualizado: %.2f \n",minPWM);
 				usart_WriteMsg(&usart1Comm, bufferMsg);
 			}
 			else{
@@ -888,27 +655,27 @@ void parseCommands(char  *ptrbufferReception){
 
 	// Opción ) PID Angulo
 	else if(strcmp(cmd, "PID_Rot") == 0){
-		usart_WriteMsg(&usart1Comm, "Iniciando PID \n");
+		usart_WriteMsg(&usart1Comm, "\nIniciando PID \n");
 
 		if (secondParameter >= 0){
 
 			linePID(firstParameter,secondParameter);
 		}
 		else{
-			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "\nLos valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 
 	}
 
 	else if(strcmp(cmd, "Square") == 0){
 
-		usart_WriteMsg(&usart1Comm, "Iniciando lo chevere \n");
+		usart_WriteMsg(&usart1Comm, "\nIniciando lo chevere \n");
 
-		if (firstParameter >= 0){
+		if (firstParameter != 0){
 			drawSquare(firstParameter);
 		}
 		else{
-			usart_WriteMsg(&usart1Comm, "Los valores deben ser positivos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
+			usart_WriteMsg(&usart1Comm, "Los valores deben ser validos.\n Ingresa \"help @\" para ver la lista de comandos.\n");
 		}
 
 	}
@@ -1147,17 +914,6 @@ void PID(PWM_Handler_t *PWM_R_handler, PWM_Handler_t *PWM_L_handler, float targe
 		 * en este caso el PWM para los motores */
 		u_PID = (float)(kp*deltaError + ki*integralError + kd*devError);
 
-		// Realizamos el ajuste en el motor
-
-		/*
-		 * PASARLO A VALOR ASBOLUTO (u_PID)
-		 */
-//		if(u_PID >= maxPWM){
-//			u_PID = maxPWM;
-//		}
-//		else if(u_PID <= minPWM){
-//			u_PID = minPWM;
-//		}
 
 		uint16_t newDutyCycleR = percDutyR + u_PID;
 		if (newDutyCycleR > maxPWM) {
@@ -1230,12 +986,29 @@ void linePID(float angle, float distance){
 }
 
 
+
+/*
+ * Función que dibuja el cuadrado.
+ * Si dim>0 es en dirección HORARIA
+ * Si dim<0 es en dirección ANTIHORARIA
+ *
+ */
 void drawSquare(float dim){
-	linePID(0, dim);
-	linePID(54, dim);
-	linePID(108, dim);
-	linePID(155, dim);
-	linePID(0, 150);
+	if (dim > 0) {		//CW square
+		linePID(0, dim);
+		linePID(-68, dim);
+		linePID(-135, dim);
+		linePID(-200, dim);
+		linePID(270, 120);
+	}
+
+	else if (dim < 0) {		//CW square
+		linePID(0, fabs(dim));
+		linePID(68, fabs(dim));
+		linePID(135, fabs(dim));
+		linePID(200, fabs(dim));
+		linePID(270, 120);
+	}
 }
 
 
@@ -1283,7 +1056,7 @@ void yawIntegral(void){
 	}
 
 //	sprintf(bufferMsg,"gyro values  %.2f,%.2f,%.2f\n",gyroData[0],gyroData[1],gyroData[2]);
-	sprintf(bufferMsg,"rate is  %.2f \t Yaw  %.2f\n",gyroData[2],yaw_gyro);
+	sprintf(bufferMsg,"%.2f,%.2f\n",gyroData[2],yaw_gyro);
 	usart_WriteMsg(&usart1Comm, bufferMsg);
 }
 
@@ -1295,7 +1068,6 @@ void Timer2_Callback(void){
 	counterMicros++;
 	// Función que maneja todos los conteos de tiempo basados en interrupciones del Timer2
 	manageCounters();
-
 }
 
 
@@ -1308,16 +1080,13 @@ void usart1_RxCallback(void){
 
 /* Interrupciones para el encoder derecho */
 void callback_ExtInt1(void){
-	//flagEncR = 1;
 	counter_R++;
 }
 
 
 /* Interrupciones para el encoder izquierdo */
 void callback_ExtInt3(void){
-	//flagEncL = 1;
 	counter_L++;
-
 }
 
 
